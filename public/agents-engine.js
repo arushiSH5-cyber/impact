@@ -17,6 +17,15 @@
   const ROUND_TICKS = 120;
   const GOAL_HEALTH = 70;
 
+  // ---- the carbon ledger: every player's real log feeds the agents (math lives in factors.js)
+  const FX = typeof module !== 'undefined' && typeof require === 'function' ? require('./factors.js').ImpactFactors : root.ImpactFactors;
+  const DEFAULT_BUDGET = { food: 6, travel: 8, water: 250, stuff: 4 }; // per person per day: kg CO2e, kg CO2e, liters, items
+  const CAT_ZONE = { food: 'forest', travel: 'ice', water: 'ocean', stuff: 'desert' };
+  const CAT_AGENT = { food: 'mossling', travel: 'frostbun', water: 'ripplet', stuff: 'sunfox' };
+  const CAT_NAME = { food: 'food', travel: 'travel & energy', water: 'water', stuff: 'stuff & trash' };
+  const COUNCIL_EVERY = 12;
+  const todayKey = () => new Date().toDateString();
+
   const AGENTS = [
     { id: 'mossling', name: 'Mossling', role: 'Gardener', type: 'guardian', goal: 'forest', home: 'forest', color: '#5fbf6a',
       voice: { pitch: 1.4, rate: 1.05 }, bio: 'Wants the forest back above 70. Plants trees, makes allies, asks humans for plant-based meals.' },
@@ -111,6 +120,7 @@
       H: {}, attn: {}, raid: { hp: 20000, max: 20000, zone: 'desert' },
       agents: [], players: {}, quests: [], offer: null, intel: null,
       log: [], seq: 0, hist: [], started: now, lastTick: now,
+      budget: Object.assign({}, DEFAULT_BUDGET), council: 0,
     };
     rand(S);
     const sp = spawnMap(spawn);
@@ -298,6 +308,37 @@
     return m && m.n > 1 ? clamp(m.avg / 3, -1, 1) * 0.22 : 0;
   }
 
+  // ---------------------------------------------------------------- ledger helpers
+  function ledgerOf(p) {
+    if (!p.led || p.led.day !== todayKey()) {
+      p.led = { day: todayKey(), food: 0, travel: 0, water: 0, stuff: 0, waste: 0, saved: 0, plastic: 0, bags: 0, km: 0, top: '', topKg: 0, items: [] };
+    }
+    return p.led;
+  }
+  const loggedToday = (p) => !!(p && p.led && p.led.day === todayKey());
+
+  // a quest built from what this player actually logged today (null when they are within budget)
+  function ledgerQuest(cat, p, S) {
+    if (!loggedToday(p)) return null;
+    const L = p.led, b = S.budget || DEFAULT_BUDGET;
+    if (cat === 'food' && L.food > b.food) return ['meal', 'Make your next meal plant-based', `You're at ${L.food.toFixed(1)} kg CO2e from food today (budget ${b.food}).${L.top ? ` Your ${L.top} was the big one.` : ''}`];
+    if (cat === 'food' && L.waste > 0) return ['leftovers', 'Eat or freeze leftovers instead of tossing them', `You threw out ${Math.round(L.waste * 1000)} g of food today. It still counts at its full footprint.`];
+    if (cat === 'travel' && L.travel > b.travel) return ['walk', 'Swap one short car trip for walking or biking', `Travel and energy are at ${L.travel.toFixed(1)} kg today (budget ${b.travel}).${L.km ? ` You drove ${L.km.toFixed(0)} km.` : ''}`];
+    if (cat === 'water' && L.water > b.water) return ['shower', 'Do a 5-minute shower sprint', `You've used about ${Math.round(L.water)} L today (budget ${b.water} L).`];
+    if (cat === 'stuff' && (L.stuff > b.stuff || L.plastic > 1)) return ['refuse', 'Say no to 3 single-use plastics', `${L.plastic} plastic items and ${L.bags} trash bags logged today.`];
+    return null;
+  }
+  const catOfAgent = (id) => Object.keys(CAT_AGENT).find((c) => CAT_AGENT[c] === id) || null;
+
+  // an agent whose category a player just blew through reacts fast (beats its usual options)
+  function ledgerOption(S, a, activePlayers) {
+    const cat = catOfAgent(a.id);
+    if (!cat || S.tick - a.lastQuest < 4) return null;
+    const hot = activePlayers.find((p) => ledgerQuest(cat, p, S) && !S.quests.some((q) => q.from === a.id && q.to === p.id && !q.done && q.until > S.tick));
+    if (!hot) return null;
+    return { t: 'quest', hot: hot.id, cat, s: 1.2, why: `${hot.name} went over today's ${CAT_NAME[cat]} budget (real log)` };
+  }
+
   function decide(S, a, sp, mem) {
     const def = BY_ID[a.id];
     const week = 7 * 864e5;
@@ -307,6 +348,8 @@
     if (def.type === 'guardian') O = O.concat(guardianOptions(S, a, def, sp, activePlayers));
     else if (def.type === 'trader') O = O.concat(traderOptions(S, a));
     else O = O.concat(villainOptions(S, a, sp));
+    const hot = ledgerOption(S, a, activePlayers);
+    if (hot) O.push(hot);
 
     for (const o of O) o.s += learnedBias(mem, a.id, o.t) + rand(S) * 0.12;
     O.sort((x, y) => y.s - x.s);
@@ -375,13 +418,23 @@
         break;
       }
       case 'quest': {
+        const cat = o.cat || catOfAgent(a.id);
+        const zone = cat ? CAT_ZONE[cat] : def.goal;
         const recent = Object.values(S.players).sort((x, y) => (y.seen || 0) - (x.seen || 0));
-        const p = recent[Math.floor(rand(S) * Math.min(recent.length, 3))];
-        const [kind, text, line] = questFor(def.goal, p && p.profile);
-        S.quests.push({ id: `q${S.seq + 1}`, from: a.id, to: p ? p.id : null, zone: def.goal, kind, text, line, until: S.tick + 30, done: false });
+        const over = cat ? recent.filter((x) => ledgerQuest(cat, x, S)) : [];
+        const p = o.hot ? S.players[o.hot] : over.length ? over[0] : recent[Math.floor(rand(S) * Math.min(recent.length, 3))];
+        const fromLog = cat ? ledgerQuest(cat, p, S) : null;
+        const [kind, text, line] = fromLog || questFor(zone, p && p.profile);
+        if (p) {
+          p.nudge = p.nudge || {};
+          const n = (p.nudge[kind] = p.nudge[kind] || { off: 0, done: 0 });
+          n.off++;
+        }
+        S.quests.push({ id: `q${S.seq + 1}`, from: a.id, to: p ? p.id : null, zone, kind, text, line, until: S.tick + 30, done: false });
         a.lastQuest = S.tick;
         e.act = `asked ${p ? p.name : 'humans'}: "${text}"`;
-        if (p && p.profile) e.why += `. Picked using ${p.name}'s profile.`;
+        if (fromLog) { e.why += `. Based on ${p.name}'s real log today.`; e.src = (e.src || []).concat(["player's real log (cited emission factors)"]); }
+        else if (p && p.profile) e.why += `. Picked using ${p.name}'s profile.`;
         e.k = 'quest'; e.target = p ? 'h_' + p.id : '';
         break;
       }
@@ -475,6 +528,81 @@
     x.avg += 0.2 * (reward - x.avg);
   }
 
+  // ---------------------------------------------------------------- the council
+  // Every COUNCIL_EVERY ticks the agents meet over the street's real logs and renegotiate tomorrow's budget.
+  function council(S) {
+    S.budget = S.budget || Object.assign({}, DEFAULT_BUDGET);
+    const b = S.budget;
+    const loggers = Object.values(S.players).filter(loggedToday);
+    const n = Math.max(1, loggers.length);
+    const use = {};
+    for (const c of Object.keys(b)) use[c] = loggers.reduce((sum, p) => sum + p.led[c], 0) / n;
+    const ratio = {};
+    for (const c of Object.keys(b)) ratio[c] = use[c] / b[c];
+    const data = Object.keys(b).map((c) => `${c} ${c === 'water' || c === 'stuff' ? Math.round(use[c]) : use[c].toFixed(1)}/${b[c]}`).join(' · ');
+    const out = [];
+    out.push(log(S, {
+      agent: 'world', k: 'council', act: "COUNCIL MEETING: rebalancing tomorrow's budget",
+      why: `Street average today (${loggers.length} player${loggers.length === 1 ? '' : 's'} logging): ${data}.`,
+      data, src: ["players' real logs", 'emission factors (EPA, Poore & Nemecek)'],
+    }));
+
+    // the most over-budget category asks for help; only food and travel share a unit (kg CO2e), so only they trade
+    const over = Object.keys(b).sort((x, y) => ratio[y] - ratio[x])[0];
+    if (loggers.length && ratio[over] > 1) {
+      const under = ['food', 'travel'].filter((c) => c !== over).sort((x, y) => ratio[x] - ratio[y])[0];
+      const giver = under && agentOf(S, CAT_AGENT[under]);
+      const asker = agentOf(S, CAT_AGENT[over]);
+      const canTrade = (over === 'food' || over === 'travel') && under && ratio[under] < 0.8 && giver.trust[asker.id] > -0.3;
+      if (canTrade) {
+        const give = Math.round(Math.min(b[under] * 0.15, 1.5) * 10) / 10;
+        b[under] = Math.round((b[under] - give) * 10) / 10;
+        b[over] = Math.round((b[over] + give) * 10) / 10;
+        nudgeTrust(giver, asker.id, 0.1);
+        out.push(log(S, {
+          agent: giver.id, k: 'council', target: asker.id,
+          act: `gave ${BY_ID[asker.id].name} ${give} kg of tomorrow's ${under} budget`,
+          why: `${under} is only at ${Math.round(ratio[under] * 100)}% of budget while ${over} is at ${Math.round(ratio[over] * 100)}%. It trusts ${BY_ID[asker.id].name} (${giver.trust[asker.id].toFixed(2)}).`,
+          data, src: ["players' real logs", 'trust matrix'],
+        }));
+      } else {
+        out.push(log(S, {
+          agent: asker.id, k: 'council',
+          act: `asked the humans to cut ${CAT_NAME[over]} tomorrow (no one could spare budget)`,
+          why: `${CAT_NAME[over]} is at ${Math.round(ratio[over] * 100)}% of budget.`, data, src: ["players' real logs"],
+        }));
+      }
+    }
+
+    // the Baron lobbies for a bigger stuff budget; Sunfox casts the deciding vote
+    if (rand(S) < 0.6) {
+      const fox = agentOf(S, 'sunfox');
+      const pull = fox.tr.greed + (-(fox.trust.mossling || 0) - (fox.trust.ripplet || 0)) * 0.3;
+      const yes = pull > 1.05;
+      b.stuff = yes ? Math.round((b.stuff + 1) * 10) / 10 : Math.max(2, Math.round((b.stuff - 0.5) * 10) / 10);
+      out.push(log(S, { agent: 'baron', k: 'betray', target: 'sunfox', act: 'pitched a "Black Friday flash sale": raise the stuff budget', why: 'More shopping means more emissions, which is its goal.', src: ['agent goals'] }));
+      out.push(log(S, {
+        agent: 'sunfox', k: yes ? 'betray' : 'ally', target: 'baron',
+        act: yes ? `VOTED YES on the flash sale (stuff budget → ${b.stuff})` : `voted NO on the flash sale (stuff budget → ${b.stuff})`,
+        why: yes ? `its greed (${fox.tr.greed.toFixed(2)}) outweighs its trust in the guardians` : `it trusts the guardians more than it wants seeds (greed ${fox.tr.greed.toFixed(2)})`,
+        src: ['agent personality', 'trust matrix'],
+      }));
+    }
+
+    // what the agents learned about each human: which nudges they follow
+    for (const p of loggers) {
+      const tried = Object.entries(p.nudge || {}).filter(([, v]) => v.off >= 2).sort((x, y) => y[1].done / y[1].off - x[1].done / x[1].off);
+      if (tried.length < 2) continue;
+      const [bk, bv] = tried[0], [wk, wv] = tried[tried.length - 1];
+      out.push(log(S, {
+        agent: 'world', k: 'learn',
+        act: `learned: ${p.name} follows "${bk}" nudges (${bv.done}/${bv.off}) but skips "${wk}" (${wv.done}/${wv.off})`,
+        why: 'Agents now favor the nudges that actually work for this person.', src: ['nudge history'],
+      }));
+    }
+    return out;
+  }
+
   // ---------------------------------------------------------------- one tick of the world
   function tick(S, spawn, mem) {
     if (S.status !== 'playing') {
@@ -483,6 +611,7 @@
       return S.tick - S.endTick >= 4 ? { restart: true, entries: [] } : { entries: [] };
     }
     const sp = spawnMap(spawn);
+    S.budget = S.budget || Object.assign({}, DEFAULT_BUDGET);
     S.tick++;
     S.lastTick = Date.now();
     agentOf(S, 'baron').seeds += 1;
@@ -491,7 +620,7 @@
     for (const a of S.agents) before[a.id] = objective(S, a);
 
     // the world slowly decays, faster where real-world smog is high
-    for (const z of ZONES) S.H[z] = clamp(S.H[z] - 0.35 - sp[z].smog_pressure * 0.07, 0, 100);
+    for (const z of ZONES) S.H[z] = clamp(S.H[z] - 0.32 - sp[z].smog_pressure * 0.07, 0, 100);
 
     const order = S.agents.slice().sort(() => rand(S) - 0.5);
     const entries = [];
@@ -501,6 +630,10 @@
       entries.push(apply(S, a, d, sp));
     }
     for (const a of S.agents) learn(mem, a.id, a._t, objective(S, a) - before[a.id]);
+    if (S.tick - (S.council || 0) >= COUNCIL_EVERY) {
+      S.council = S.tick;
+      for (const e of council(S)) entries.push(e);
+    }
 
     S.hist = S.hist || [];
     S.hist.push(Math.round(avgHealth(S)));
@@ -546,6 +679,35 @@
     p.seen = Date.now();
     let total = 0;
     const parts = [];
+
+    // real log lines: raw items in, numbers computed here from the cited factors (client numbers are ignored)
+    let logged = null;
+    if (Array.isArray(act.items) && act.items.length && FX) {
+      const L = ledgerOf(p);
+      act.deltas = Object.assign({}, act.deltas);
+      logged = [];
+      for (const raw of act.items.slice(0, 40)) {
+        const x = FX.compute(raw);
+        if (x.skip) continue;
+        logged.push(x);
+        if (x.cat === 'water') L.water += x.liters;
+        else if (x.cat === 'stuff') L.stuff += x.items;
+        else L[x.cat] += x.kg;
+        L.waste += x.waste; L.saved += x.saved; L.plastic += x.plastic; L.bags += x.bags;
+        if (x.kind === 'drive') L.km += x.km;
+        if (x.cat === 'food' && x.kg > L.topKg) { L.topKg = x.kg; L.top = x.label.replace(/^\d+× /, '').replace(/ meal$/, ''); }
+        L.items.push({ t: Date.now(), label: x.label, cat: x.cat, kg: Math.round(x.kg * 1000) / 1000, liters: Math.round(x.liters), saved: Math.round(x.saved * 1000) / 1000, src: x.src });
+        if (L.items.length > 60) L.items.shift();
+        // savings heal the matching zone; emissions dent it a little
+        let d;
+        if (x.saved || x.savedItems) d = Math.min(6, x.saved * 1.5 + (x.savedItems || 0) * 1.2);
+        else if (x.cat === 'water') d = -Math.min(3, x.liters / 90);
+        else if (x.cat === 'stuff') d = -Math.min(3, x.items * 0.7);
+        else d = -Math.min(4, x.kg * 0.3);
+        const z = CAT_ZONE[x.cat];
+        act.deltas[z] = Math.round(((act.deltas[z] || 0) + d) * 10) / 10;
+      }
+    }
     for (const [z, d] of Object.entries(act.deltas || {})) {
       if (!ZONES.includes(z) || !isFinite(d)) continue;
       const dd = clamp(+d, -20, 30);
@@ -564,21 +726,42 @@
     // a real-world action in the quest's zone completes that agent's quest
     let questNote = '';
     for (const q of S.quests) {
-      if (q.done || q.until < S.tick || (q.to && q.to !== pid) || !act.real || !((act.deltas || {})[q.zone] > 0)) continue;
+      if (q.done || q.until < S.tick || (q.to && q.to !== pid)) continue;
+      const healed = act.real && (act.deltas || {})[q.zone] > 0;
+      if (!healed && !(logged && logged.some((x) => fitsQuest(q.kind, x)))) continue;
       q.done = pid;
+      p.nudge = p.nudge || {};
+      const nn = (p.nudge[q.kind] = p.nudge[q.kind] || { off: 1, done: 0 });
+      nn.done++;
       const giver = agentOf(S, q.from);
       giver.trust['h_' + pid] = 1;
       S.H[q.zone] = clamp(S.H[q.zone] + 3, 0, 100);
       questNote = ` Completed ${BY_ID[q.from].name}'s quest (+3 bonus).`;
       break;
     }
-    const proof = act.real ? `Real-world action${act.proof > 1 ? ` with ${act.proof === 3 ? 'photo + walk' : 'photo'} proof (×${act.proof})` : ' (honor)'}. ` : 'In-game action. ';
-    return log(S, {
+    if (logged) {
+      const kg = logged.reduce((s2, x) => s2 + x.kg, 0), sv = logged.reduce((s2, x) => s2 + x.saved, 0);
+      act.label = act.label || `logged ${logged.length} item${logged.length === 1 ? '' : 's'} (${kg.toFixed(1)} kg CO2e${sv ? `, saved ${sv.toFixed(1)}` : ''})`;
+    }
+    const proof = logged ? `Real log${act.via === 'scan' ? ' from a scanned receipt/bill' : ''}. ` : act.real ? `Real-world action${act.proof > 1 ? ` with ${act.proof === 3 ? 'photo + walk' : 'photo'} proof (×${act.proof})` : ' (honor)'}. ` : 'In-game action. ';
+    const entry = log(S, {
       agent: 'human', who: pid, k: 'human',
       act: `${p.name}: ${String(act.label || 'helped').slice(0, 80)}`,
       why: proof + parts.join(' · ') + questNote,
-      src: [act.real ? 'player (real life)' : 'player (game)'],
+      src: logged ? ['player (real life)', 'cited emission factors (EPA, Poore & Nemecek)'] : [act.real ? 'player (real life)' : 'player (game)'],
     });
+    if (logged) Object.defineProperty(entry, 'items', { value: logged, enumerable: false }); // for logs/ledger.jsonl, not broadcast
+    return entry;
+  }
+
+  // a logged line that does what the quest asked
+  const PLANT = new Set(['tofu', 'beans', 'peas', 'potatoes', 'rice', 'bread', 'nuts', 'tomatoes', 'apples', 'bananas']);
+  function fitsQuest(kind, x) {
+    if (kind === 'meal') return x.kind === 'meal' && PLANT.has(String(x.key).replace('food:', ''));
+    if (kind === 'walk') return x.kind === 'walk';
+    if (kind === 'refuse') return x.kind === 'refuse';
+    if (kind === 'shower') return x.kind === 'shower' && x.amount <= 5;
+    return false;
   }
 
   // in-app audit (the Bruin agent_report replaces this once the pipeline has run)
@@ -610,5 +793,6 @@
     return { seed, status: S.status, ticks: S.tick, avg: Math.round(avgHealth(S)), H: S.H, hist: S.hist.slice(), key: key.slice(-14), report: report(S.log) };
   }
 
-  root.ImpactAgents = { ZONES, ZONE_NAME, ZN: ZONE_NAME, AGENTS, AG: BY_ID, SNAPSHOT, ROUND: ROUND_TICKS, create, tick, join, human, report, simulate, avgH: avgHealth, spawnMap, questFor };
+  root.ImpactAgents = { ZONES, ZONE_NAME, ZN: ZONE_NAME, AGENTS, AG: BY_ID, SNAPSHOT, ROUND: ROUND_TICKS, create, tick, join, human, report, simulate, avgH: avgHealth, spawnMap, questFor,
+    ledgerOf, council, DEFAULT_BUDGET, CAT_ZONE, CAT_AGENT, COUNCIL_EVERY };
 })(typeof module !== 'undefined' ? module.exports : window);

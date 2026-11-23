@@ -1,0 +1,24 @@
+name: raw.emission_factors
+type: duckdb.seed
+description: Cited emission factors (US EPA; Poore & Nemecek 2018 via Our World in Data). The same numbers the app uses in public/factors.js; Bruin recomputes every footprint from this table.
+parameters:
+  path: emission_factors.csv
+columns:
+  - name: factor_key
+    type: varchar
+    checks:
+      - name: not_null
+      - name: unique
+  - name: kg_co2e_per_unit
+    type: double
+    checks:
+      - name: not_null
+      - name: non_negative
+  - name: liters_per_unit
+    type: double
+    checks:
+      - name: non_negative
+  - name: source
+    type: varchar
+    checks:
+      - name: not_null

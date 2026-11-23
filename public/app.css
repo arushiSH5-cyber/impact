@@ -184,3 +184,36 @@ input[type=text], input[type=search] { width: 100%; font: inherit; padding: 12px
   .zone { font-size: 12px; }
   .sheet { top: 112px; }
 }
+
+/* ---------- Today: the carbon ledger ---------- */
+#tabbar .play .ic { fill: none; stroke-width: 2.6; }
+.tdh { display: flex; gap: 14px; align-items: center; margin: 6px 0 10px; }
+.ring { position: relative; width: 132px; height: 132px; flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring div { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; line-height: 1.1; }
+.ring b { font: 700 34px Gaegu, cursive; display: block; }
+.ring small { font-size: 11px; color: var(--mute); }
+.bigacts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 12px; }
+.bigacts button { display: flex; align-items: center; gap: 10px; text-align: left; background: #fff; border: 2px solid var(--line); border-radius: 18px; padding: 12px; font-weight: 800; box-shadow: 0 4px 0 var(--line); }
+.bigacts button.p { background: var(--gold-bg); border-color: var(--sun); box-shadow: 0 4px 0 var(--sun-d); }
+.bigacts .ic { width: 30px; height: 30px; }
+.bigacts small { display: block; color: var(--mute); font-size: 12px; font-weight: 700; }
+.cat { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center; background: var(--card2); border-radius: 16px; padding: 9px 12px; margin-bottom: 7px; }
+.cat img { width: 40px; height: 40px; }
+.cat .top { display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; }
+.cbar { height: 9px; border-radius: 6px; background: #e8e1cc; overflow: hidden; margin: 4px 0; }
+.cbar i { display: block; height: 100%; border-radius: 6px; transition: width .6s; }
+.li { display: flex; gap: 8px; align-items: center; background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 7px 10px; margin-bottom: 5px; font-size: 13px; }
+.li span { flex: 1; font-weight: 800; min-width: 0; }
+.li small { display: block; color: var(--mute); font-weight: 600; font-size: 11px; }
+.li b { font: 700 18px Gaegu, cursive; white-space: nowrap; }
+.li .x { width: 28px; height: 28px; flex: none; }
+.ctabs { display: flex; gap: 6px; overflow-x: auto; margin: 8px 0; }
+.ctabs button { flex: 1; white-space: nowrap; background: var(--card2); border: 2px solid var(--line); border-radius: 999px; padding: 7px 10px; font-size: 13px; font-weight: 800; }
+.ctabs button.on { background: var(--leaf-bg); border-color: var(--leaf); }
+.qchips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0; }
+.qchips > button, .qchips .step { background: #fff; border: 2px solid var(--line); border-radius: 999px; padding: 8px 12px; font-weight: 800; font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+.qchips .step input { width: 56px; padding: 4px; border-radius: 8px; border: 2px solid var(--line); text-align: center; font: inherit; }
+.qchips .step button { background: var(--leaf); color: #fff; border-radius: 999px; padding: 4px 12px; }
+.pend { max-height: 210px; overflow-y: auto; text-align: left; margin: 8px 0; }
+.entry.k-council { border-color: #9fd0a8; background: #f2faf2; }

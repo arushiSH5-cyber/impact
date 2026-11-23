@@ -20,11 +20,14 @@ fs.mkdirSync(DATA, { recursive: true });
 fs.mkdirSync(LOGS, { recursive: true });
 
 const PORT = +process.env.PORT || 8787;
+const BODY_LIMIT = 9e6; // room for a resized receipt photo
 const TICK_MS = +process.env.TICK_MS || 10000;
 const MAX_CATCHUP = 120;
 const STATE_FILE = path.join(DATA, 'state.json');
 const MEMORY_FILE = path.join(DATA, 'agent_memory.json');
 const LOG_FILE = path.join(LOGS, 'decisions.jsonl');
+const LEDGER_FILE = path.join(LOGS, 'ledger.jsonl');
+const FOOTPRINT_FILE = path.join(DATA, 'footprint_daily.csv');
 const SPAWN_FILE = path.join(DATA, 'daily_spawn.csv');
 const REPORT_FILE = path.join(DATA, 'agent_report.csv');
 
@@ -92,6 +95,19 @@ function appendLog(entries) {
     action: e.act, why: e.why, data: e.data || '', sources: (e.src || []).join(' | '), target: e.target || '',
   }));
   fs.appendFileSync(LOG_FILE, lines.join('\n') + '\n');
+}
+// every real log line, with the factor key + amount so Bruin can recompute the math from its own factor table
+function appendLedger(pid, entry, via) {
+  if (!entry.items || !entry.items.length) return;
+  const p = S.players[pid] || {};
+  const d = new Date();
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const lines = entry.items.map((x) => JSON.stringify({
+    ts: d.toISOString(), day, player_id: pid, player: p.name || '', cat: x.cat, kind: x.kind, factor_key: x.key, amount: +x.amount || 0,
+    kg_app: Math.round(x.kg * 1e4) / 1e4, liters: Math.round(x.liters * 10) / 10, items: x.items || 0, saved_kg: Math.round(x.saved * 1e4) / 1e4,
+    label: x.label, source: x.src, via: via || 'tap',
+  }));
+  fs.appendFileSync(LEDGER_FILE, lines.join('\n') + '\n');
 }
 function persist() {
   fs.writeFileSync(STATE_FILE, JSON.stringify(S));
@@ -181,7 +197,7 @@ const MIME = {
 function readBody(req) {
   return new Promise((resolve) => {
     let b = '';
-    req.on('data', (c) => { b += c; if (b.length > 2e6) req.destroy(); });
+    req.on('data', (c) => { b += c; if (b.length > BODY_LIMIT) req.destroy(); });
     req.on('end', () => { try { resolve(JSON.parse(b || '{}')); } catch (e) { resolve({}); } });
   });
 }
@@ -213,8 +229,10 @@ const routes = {
   async 'POST /api/act'(req, res) {
     const b = await readBody(req);
     if (!b.id || !b.act) return send(res, 400, { error: 'id and act required' });
-    const e = IA.human(S, String(b.id), b.act, false);
-    appendLog([e]); persist(); broadcast();
+    const act = Object.assign({}, b.act);
+    if (act.items && !Array.isArray(act.items)) delete act.items;
+    const e = IA.human(S, String(b.id), act, false);
+    appendLog([e]); appendLedger(String(b.id), e, act.via); persist(); broadcast();
     send(res, 200, { ok: true, entry: e });
   },
   async 'POST /api/new'(req, res) {
@@ -232,6 +250,25 @@ const routes = {
       return send(res, 200, { source: `Bruin agent_report (from logs/decisions.jsonl, built ${built} UTC)`, bruin: true, rows });
     }
     send(res, 200, { source: 'live from this run (Bruin report not built yet: run `bruin run pipeline`)', bruin: false, rows: IA.report(S.log) });
+  },
+  'GET /api/footprint'(req, res) {
+    const rows = readCSV(FOOTPRINT_FILE);
+    if (rows && rows.length) {
+      const built = new Date(fs.statSync(FOOTPRINT_FILE).mtimeMs).toISOString().slice(0, 16).replace('T', ' ');
+      return send(res, 200, { source: `Bruin footprint_daily (recomputed from cited factors, built ${built} UTC)`, bruin: true, rows });
+    }
+    const today = Object.values(S.players).filter((p) => p.led && p.led.day === new Date().toDateString()).map((p) => ({
+      player: p.name, day: 'today', food_kg: p.led.food.toFixed(2), travel_energy_kg: p.led.travel.toFixed(2), water_l: Math.round(p.led.water), stuff_items: p.led.stuff, saved_kg: p.led.saved.toFixed(2),
+    }));
+    send(res, 200, { source: 'live from the server (Bruin footprint_daily not built yet: run `bruin run pipeline`)', bruin: false, rows: today });
+  },
+  async 'POST /api/scan'(req, res) {
+    if (!sponsors.llm.ok()) return send(res, 503, { error: 'Receipt scan needs ANTHROPIC_API_KEY on the server' });
+    const b = await readBody(req);
+    try {
+      const items = await sponsors.llm.scan(b.image);
+      send(res, 200, { items, note: 'Claude extracted these lines only; footprints are computed from cited factors.' });
+    } catch (e) { send(res, 502, { error: e.message }); }
   },
   'GET /api/sim'(req, res, u) {
     const seed = +u.searchParams.get('seed') || 42;

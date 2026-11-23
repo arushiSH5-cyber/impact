@@ -4,9 +4,10 @@
 
 > A UI concept was sketched before the event; all code in this repo was written during the event.
 
-Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it and act every 10 seconds, even when nobody is playing. **Two or more humans** join from their phones and share the same world. The agents' choices are driven by **live air-quality data from a Bruin pipeline** and by the humans' **real-world eco actions** (photo-proofed). Every decision is logged with *why*, *the data it used* and *its source*, and Bruin audits the agents afterwards.
+Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it and act every 10 seconds, even when nobody is playing. **Two or more humans** join from their phones and share the same world. The agents' choices are driven by **live air-quality data from a Bruin pipeline** and by the humans' **real carbon ledger**: what you actually ate, drove, showered and threw away today, logged by tapping or by scanning a receipt, and computed only from cited emission factors. An **agent council** renegotiates the street's daily budget every few minutes. Every decision is logged with *why*, *the data it used* and *its source*, and Bruin recomputes everyone's footprint and audits the agents afterwards.
 
 ```
+ Your real log (tap or receipt scan) ─► server: cited factors ─► logs/ledger.jsonl ─► Bruin footprint_daily (recomputes + checks the math)
  Open-Meteo (live PM2.5, temp, humidity) ─► Bruin pipeline ─► data/daily_spawn.csv ─┐
                                               (21 quality checks)                   ▼
  Humans on 2+ phones ── real actions, photo proof, Smog Pop ──► server.js tick loop (every 10 s)
@@ -45,7 +46,16 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 | Two runs, different outcomes | Agents panel → **Run it twice** (seed 42 vs 7: instant 120-tick simulations with health curves, betrayals and alliances) |
 | Booster: 3D | Three.js planet, agents, smog, orbiting debris |
 | Booster: learns between runs | `data/agent_memory.json`: per-agent action → reward running averages bias the next run ("remembers run 2: prefers to tend") |
+| Real-world impact | **Today** tab: your carbon ledger vs a budget the council sets; log meals, trips, showers, trash, bills; guardians give missions from your real log ("You're at 14.9 kg CO2e from food today. Your beef was the big one.") |
 | Booster: voice | Each agent speaks big moments with its own pitch and rate (Web Speech). Me → Agent voices |
+
+## The carbon ledger and the council
+
+- **Log it** (center tab): tap what you did. Each line is computed from `public/factors.js`, where every number is cited: Poore & Nemecek (2018) via Our World in Data for food; US EPA for driving (404 g CO2/mile), gasoline (8,887 g/gal), electricity (0.394 kg/kWh), natural gas, and WaterSense for showers. Assumptions (like a 150 g portion) are shown next to the number.
+- **Scan a receipt or bill**: Claude reads the photo and only *extracts* line items into a fixed JSON schema. It never produces a number: the server computes footprints from the same cited factors, and unknown items are shown as "not counted", never guessed.
+- The server ignores any numbers the client sends; it recomputes every line. Each line goes to `logs/ledger.jsonl` with its factor key and amount.
+- **Missions from your log**: when you go over today's budget in a category, its agent reacts on the next tick (Mossling: food, Frostbun: travel and energy, Ripplet: water, Sunfox: stuff). Logging a tofu meal completes Mossling's "plant-based meal" mission.
+- **Council** (every 12 ticks): the agents read the street's real logs, and an under-budget guardian can give part of its budget to an over-budget one (if it trusts it). The Smog Baron lobbies for a "Black Friday flash sale"; Sunfox casts the deciding vote based on its greed and trust. The council also learns which nudges each person actually follows.
 
 ## How the agents decide (`public/agents-engine.js`, shared by server and browser)
 
@@ -69,14 +79,17 @@ It picks the top option and the effect changes the shared world. The log records
 | `marts.daily_spawn` (SQL) | What agents read each tick: `smog_pressure`, `heat`, `spawn_score` (+ space) | not_null, unique, non_negative, custom "5 zones" |
 | `raw.agent_decisions` (Python) | Loads `logs/decisions.jsonl`, written live by the server | |
 | `marts.agent_report` (SQL) | Audits every agent: allies, trades, betrayals and bribes, fights, quests, decisions grounded in Bruin data | not_null, unique, positive, custom "no agent acts without a reason" |
-| `export.game_data` (SQL) | Writes `data/daily_spawn.csv` and `data/agent_report.csv`; the server hot-reloads them | |
+| `raw.emission_factors` (seed CSV) | The cited factor table (EPA, Poore & Nemecek), same numbers as the app | not_null, unique, non_negative |
+| `raw.ledger` (Python) | Every real log line from `logs/ledger.jsonl` (factor key + amount) | |
+| `marts.footprint_daily` (SQL) | **Recomputes** everyone's footprint per person per day from the factor table (Today tab: "Source: Bruin footprint_daily") | not_null, non_negative, 3 custom: every line has a source, every line maps to a cited factor, **the app's CO2 math matches Bruin's** |
+| `export.game_data` (SQL) | Writes `data/daily_spawn.csv`, `data/agent_report.csv`, `data/footprint_daily.csv`; the server hot-reloads them | |
 
 ```bash
-bruin validate pipeline   # ✓ 6 assets, no issues
-bruin run pipeline        # ✓ 6 assets, 21 quality checks passed
+bruin validate pipeline   # ✓ 9 assets, no issues
+bruin run pipeline        # ✓ 9 assets, 33 quality checks passed
 ```
 
-After a run, the Agents log cites `Bruin · daily_spawn <date>` on every agent decision and **Run report** says `Source: Bruin agent_report`. Bruin isn't only a loader here: it holds the AI agents accountable.
+After a run, the Agents log cites `Bruin · daily_spawn <date>` on every agent decision, **Run report** says `Source: Bruin agent_report`, and Today's history says `Source: Bruin footprint_daily`. Bruin isn't only a loader here: it computes everyone's carbon ledger, checks the app's math, and holds the AI agents accountable.
 
 ## Sponsors: honest status
 
@@ -84,12 +97,12 @@ The app's **Me → How Impact works** shows live status from `/api/health`. A sp
 
 | Sponsor | Use in Impact | Status |
 |---|---|---|
-| **Bruin** | Pipeline feeding the agents live air data and auditing every decision | ✅ **used**: validate + run pass (6 assets, 21 checks), live Open-Meteo data, server hot-reloads it |
+| **Bruin** | Recomputes everyone's carbon ledger, feeds the agents live air data, audits every decision | ✅ **used**: validate + run pass (9 assets, 33 checks), live Open-Meteo data, server hot-reloads it |
 | Telem | Each zone's agent cites one fresh news result (with link) in its log; "Live · via Telem" news reels in the Feed | ⚪ adapter written (`sponsors/telem.js`), **not verified: no API key on the build machine yet** |
 | BAND | Ally/betray/quest/fight/end events posted to a BAND room with an @mention, max 1 per agent per minute; log shows "posted to BAND" | ⚪ adapter written (`sponsors/band.js`), **not verified: no API key / room yet** |
 | Runware | "Make my world postcard" paints the live planet state; cost counter | ⚪ adapter written (`sponsors/runware.js`), **not verified: no API key yet**. Total cost so far: $0 |
 | Glasser | "Drop-off places near me" in Bin Buddy | ⚪ adapter written (`sponsors/glasser.js`), **not verified: CLI not installed, no key** |
-| Claude (optional) | One in-character line per big agent event | ⚪ off unless `ANTHROPIC_API_KEY` is set |
+| Claude (Anthropic) | Receipt/bill scanner (vision, extraction only, structured JSON) + one-line agent voices | ⚪ adapter written (`sponsors/llm.js`, `claude-opus-5-5`), **not verified: no API key yet**. Without it, logging by tapping still works |
 | Lingcode | Wrap the PWA as an app | not used yet |
 | Teamily | "Maple St" street group for humans + a role agent (link in Neighbors) | event comms |
 | AdaL | Demo video | — |
@@ -106,6 +119,7 @@ To turn one on: copy `.env.example` to `.env`, add the key, and run `npm start`.
 ```
 server.js                 zero-dependency server: SSE, tick loop + catch-up, decisions.jsonl, API
 public/agents-engine.js   the five agents (shared by server and browser)
+public/factors.js         cited emission factors (shared by server and browser)
 public/app.js             PWA UI · public/globe.js 3D planet · public/faces.js characters
 pipeline/                 Bruin assets  ·  .bruin.yml (DuckDB at data/impact.duckdb)
 sponsors/                 Telem, BAND, Runware, Glasser, Claude adapters (honest health)

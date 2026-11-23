@@ -190,7 +190,7 @@ function modal(html) {
 function closeModal() { $('#modal').hidden = true; }
 
 let openTab = null;
-const LIVE_TABS = new Set(['agents', 'neighbors', 'go']);
+const LIVE_TABS = new Set(['agents', 'neighbors', 'go', 'today']);
 const TABS = {};
 function openSheet(tab) {
   openTab = tab;
@@ -210,14 +210,14 @@ function renderSheet(live) {
   if (t.mount) t.mount();
 }
 $('#sheetX').onclick = () => openSheet(null);
-document.querySelectorAll('#tabbar button').forEach((b) => (b.onclick = () => openSheet(b.dataset.tab === 'globe' ? null : b.dataset.tab)));
+document.querySelectorAll('#tabbar button').forEach((b) => (b.onclick = () => (b.dataset.tab === 'log' ? composer() : openSheet(b.dataset.tab === 'globe' ? null : b.dataset.tab))));
 $('#agentsBtn').onclick = () => openSheet('agents');
 $('#meBtn').onclick = () => openSheet('me');
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else openSheet(null); } });
 
 // ------------------------------------------------------------------ Agents panel
 let logFilter = 'all';
-const FILTERS = { all: 'All', social: 'Ally · trade · betray', fight: 'Fights', quest: 'Quests', human: 'Humans', learn: 'Learning' };
+const FILTERS = { all: 'All', council: 'Council', social: 'Ally · trade · betray', fight: 'Fights', quest: 'Quests', human: 'Humans', learn: 'Learning' };
 function filterLog(e) {
   if (logFilter === 'all') return true;
   if (logFilter === 'social') return ['ally', 'trade', 'betray'].includes(e.k);
@@ -271,7 +271,7 @@ function bruinSource() {
   return b && b.ok ? `<span class="chip ok">Bruin daily_spawn · ${esc(b.detail)}</span>` : `<span class="chip bad">Bruin not run yet: snapshot data</span>`;
 }
 TABS.agents = {
-  title: 'The agents',
+  title: 'The council',
   html() {
     return `<div class="chips"><span class="chip">${mode === 'online' ? 'Live · shared world' : 'Offline · agents run in this browser'}</span>
         <span class="chip gold" id="runChip"></span>${bruinSource()}</div>
@@ -387,7 +387,7 @@ TABS.go = {
     el.innerHTML = qs.length ? '<h3>⭐ Quests for you</h3>' + qs.map((q) => `<div class="quest-card"><img src="${faceURL(IA.AG[q.from], 96)}" alt="">
       <div><b>${esc(IA.AG[q.from].name)}:</b> ${esc(q.text)}<div class="small muted">${esc(q.line)}</div>
       <button class="btn" style="margin-top:6px;min-height:38px;padding:8px 14px" data-q="${esc(q.kind)}">I did it</button></div></div>`).join('') : '';
-    el.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => doAction(QUEST_ACTION[b.dataset.q] || 'litter')));
+    el.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => doQuest(b.dataset.q)));
   },
   mount() {
     this.live();
@@ -494,7 +494,8 @@ TABS.neighbors = {
       const recent = Date.now() - (p.seen || 0) < 5 * 60000;
       return `<div class="entry human"><img src="${faceURL(BUDDIES.find((b) => b.id === p.av) || BUDDIES[0], 80)}" alt=""><div>
         <b>${esc(p.name)}</b>${me && p.id === me.id ? ' (you)' : ''} <span class="chip ${recent ? 'ok' : ''}">${recent ? 'active now' : 'seen ' + new Date(p.seen).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-        <div class="small muted">${p.acts} actions · healed ${p.score} · ${Object.entries(p.zoneHelp || {}).map(([z, v]) => `${ZN[z]} +${Math.round(v)}`).join(' · ') || 'no help yet'}</div></div></div>`;
+        <div class="small muted">${p.acts} actions · healed ${p.score} · ${Object.entries(p.zoneHelp || {}).map(([z, v]) => `${ZN[z]} +${Math.round(v)}`).join(' · ') || 'no help yet'}</div>
+        ${ledToday(p) ? `<div class="small"><b>Today (real log):</b> food ${p.led.food.toFixed(1)} · travel ${p.led.travel.toFixed(1)} kg CO₂e · water ${Math.round(p.led.water)} L · ${p.led.stuff} items</div>` : ''}</div></div>`;
     }).join('') || '<p class="muted">Just you so far.</p>');
   },
   mount() {
@@ -563,7 +564,7 @@ const SPONSORS = [
   ['band', 'BAND', 'Agent events posted to a real BAND room'],
   ['runware', 'Runware', 'World postcard painted from live game state'],
   ['glasser', 'Glasser', 'Real drop-off places in Bin Buddy'],
-  ['llm', 'Claude (optional)', 'One-line in-character agent voice'],
+  ['llm', 'Claude', 'Reads receipts and bills (vision) + one-line agent voices'],
 ];
 TABS.me = {
   title: 'Me',
@@ -657,3 +658,167 @@ else if (!me.profile || !me.profile.home) quiz(0);
 connect();
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 window.addEventListener('beforeunload', () => store.set('lastVisit', Date.now()));
+
+// ------------------------------------------------------------------ Today: your real carbon ledger, governed by the council
+const FX = window.ImpactFactors;
+const CATUI = [['food', 'Food', 'mossling', '#7cc07f', 'kg CO₂e'], ['travel', 'Travel & energy', 'frostbun', '#7fc2e0', 'kg CO₂e'], ['water', 'Water', 'ripplet', '#4a9fe0', 'L'], ['stuff', 'Stuff & trash', 'sunfox', '#e8b86a', 'items']];
+const EMPTY_LED = { food: 0, travel: 0, water: 0, stuff: 0, waste: 0, saved: 0, plastic: 0, bags: 0, km: 0, items: [] };
+function ledToday(p) { return !!(p && p.led && p.led.day === new Date().toDateString()); }
+function myLed() { const p = me && W && W.players[me.id]; return ledToday(p) ? p.led : EMPTY_LED; }
+function ringSVG(v, max, color) {
+  const r = 56, c = 2 * Math.PI * r, f = Math.min(1, v / max);
+  return `<svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="${r}" fill="none" stroke="#e8e1cc" stroke-width="14"/><circle cx="66" cy="66" r="${r}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${c * f} ${c}"/></svg>`;
+}
+function agentLine(agent) {
+  const R = W.log.slice().reverse();
+  const mine = me && R.find((e) => e.agent === agent && e.k === 'quest' && e.act.includes(`asked ${me.name}:`));
+  if (mine) return mine.act.replace(`asked ${me.name}: `, 'asks you: ');
+  const other = R.find((e) => e.agent === agent && (e.k === 'council' || e.k === 'thank'));
+  return other ? other.act : IA.AG[agent].bio;
+}
+let FOOT = null;
+TABS.today = {
+  title: 'Today',
+  html() {
+    const L = myLed(), b = W.budget || IA.DEFAULT_BUDGET;
+    const tot = L.food + L.travel, bud = b.food + b.travel, over = tot > bud;
+    const llm = mode === 'online' && HEALTH.llm && HEALTH.llm.ok;
+    const council = W.log.filter((e) => e.k === 'council').slice(-3).reverse();
+    return `<div class="tdh"><div class="ring">${ringSVG(tot, bud, over ? '#e0786a' : '#7cc07f')}<div><span><b>${tot.toFixed(1)}</b><small>of ${bud.toFixed(1)} kg CO₂e</small></span></div></div>
+      <div><p style="margin:0;font-weight:800">${!L.items.length ? 'Nothing logged yet today.' : over ? 'Over budget. The council is worried.' : 'Under budget. The council is happy.'}</p>
+      <p class="small muted" style="margin:4px 0">Your daily budget is set by the agent council and changes when they negotiate. Every number uses cited EPA and Poore &amp; Nemecek factors.</p>
+      ${L.saved > 0 ? `<span class="chip ok">${L.saved.toFixed(1)} kg saved by walking/biking</span>` : ''}</div></div>
+      <div class="bigacts"><button class="p" id="tdLog"><svg class="ic"><use href="#i-plus"/></svg><span>Log something<small>meals, trips, showers, trash…</small></span></button>
+      <button id="tdScan"><svg class="ic"><use href="#i-scan"/></svg><span>Scan a receipt or bill<small>${llm ? 'Claude reads it, factors do the math' : 'needs the server + Claude key'}</small></span></button></div>
+      ${CATUI.map(([k, n, ag, col, unit]) => {
+        const v = L[k] || 0, bb = b[k] || 1;
+        return `<div class="cat"><img src="${faceURL(IA.AG[ag], 80)}" alt=""><div><div class="top"><span>${n}</span><span>${k === 'water' || k === 'stuff' ? Math.round(v) : v.toFixed(1)} / ${bb} ${unit}</span></div>
+          <div class="cbar"><i style="width:${Math.min(100, (v / bb) * 100)}%;background:${v > bb ? '#e0786a' : col}"></i></div>
+          <div class="small muted"><b>${IA.AG[ag].name}:</b> ${esc(agentLine(ag))}</div></div></div>`;
+      }).join('')}
+      ${openQuests().length ? `<h3>⭐ Missions for you</h3>${openQuests().map((q) => `<div class="quest-card"><img src="${faceURL(IA.AG[q.from], 96)}" alt=""><div><b>${esc(IA.AG[q.from].name)}:</b> ${esc(q.text)}<div class="small muted">“${esc(q.line)}”</div><button class="btn" style="margin-top:6px;min-height:38px;padding:8px 14px" data-qk="${esc(q.kind)}">Do it</button></div></div>`).join('')}` : ''}
+      ${council.length ? `<h3>🏛️ Latest council decisions</h3>${council.map(entryHTML).join('')}` : ''}
+      <h3>📒 Today's log</h3>${L.items.length ? L.items.slice().reverse().map((x) => `<div class="li"><span>${esc(x.label)}<small>${esc(x.src || '')}</small></span><b>${x.cat === 'water' ? Math.round(x.liters) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.kg ? x.kg.toFixed(2) + ' kg' : x.cat === 'stuff' ? 'item' : '·'}</b></div>`).join('') : '<p class="small muted">Log your first thing: the agents react on their next tick.</p>'}
+      <h3>📊 Street footprint history</h3><div id="footOut">${FOOT ? footTable(FOOT) : '<p class="small muted">Loading…</p>'}</div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost" id="tdGo">More real actions</button><button class="btn ghost" id="tdPlay">Smog Pop</button><button class="btn ghost" id="tdFeed">Feed &amp; news</button></div>`;
+  },
+  live() { const sc = $('#sheetB').scrollTop; $('#sheetB').innerHTML = this.html(); this.wire(); $('#sheetB').scrollTop = sc; },
+  mount() { this.wire(); loadFoot(); },
+  wire() {
+    $('#tdLog').onclick = () => composer();
+    $('#tdScan').onclick = scanFlow;
+    $('#tdGo').onclick = () => openSheet('go');
+    $('#tdPlay').onclick = () => openSheet('play');
+    $('#tdFeed').onclick = () => openSheet('feed');
+    document.querySelectorAll('#sheetB [data-qk]').forEach((x) => (x.onclick = () => doQuest(x.dataset.qk)));
+  },
+};
+function footTable(r) {
+  if (!r.rows || !r.rows.length) return `<p class="small muted">No history yet. Source: ${esc(r.source)}</p>`;
+  const cols = Object.keys(r.rows[0]).filter((k) => k !== 'player_id');
+  return `<div class="chips"><span class="chip ${r.bruin ? 'ok' : ''}">Source: ${esc(r.source)}</span></div><div class="tablewrap"><table><tr>${cols.map((k) => `<th>${esc(k.replace(/_/g, ' '))}</th>`).join('')}</tr>${r.rows.slice(0, 10).map((x) => `<tr>${cols.map((k) => `<td>${esc(x[k])}</td>`).join('')}</tr>`).join('')}</table></div>`;
+}
+async function loadFoot() {
+  if (mode === 'online') { try { FOOT = await api('api/footprint'); } catch (e) { /* keep last */ } }
+  else { const L = myLed(); FOOT = { source: 'this device (offline)', rows: [{ day: 'today', food_kg: L.food.toFixed(2), travel_energy_kg: L.travel.toFixed(2), water_l: Math.round(L.water), stuff_items: L.stuff }] }; }
+  const o = $('#footOut');
+  if (o && FOOT) o.innerHTML = footTable(FOOT);
+}
+// quests: ledger quests open the composer on the right category; others use the Go! actions
+function doQuest(kind) {
+  const toComposer = { meal: 'food', leftovers: 'food', walk: 'travel', refuse: 'stuff', shower: 'water' };
+  if (toComposer[kind]) return composer(toComposer[kind]);
+  doAction(QUEST_ACTION[kind] || 'litter');
+}
+
+// ------------------------------------------------------------------ composer: quick logging with live, cited math
+const QL = {
+  food: [['🥩', 'Beef meal', { kind: 'meal', food: 'beef' }], ['🍗', 'Chicken meal', { kind: 'meal', food: 'chicken' }], ['🐟', 'Fish meal', { kind: 'meal', food: 'fish' }],
+    ['🥚', 'Eggs', { kind: 'meal', food: 'eggs' }], ['🥗', 'Tofu meal', { kind: 'meal', food: 'tofu' }], ['🫘', 'Beans / veggie meal', { kind: 'meal', food: 'beans' }],
+    ['🗑️', 'Threw out leftovers (meat, 300 g)', { kind: 'food_waste', food: 'chicken', kg: 0.3 }], ['🗑️', 'Threw out leftovers (veg, 300 g)', { kind: 'food_waste', food: 'potatoes', kg: 0.3 }]],
+  travel: [['🚗', 'Drove', { kind: 'drive' }, 'km', 10], ['⛽', 'Filled up gas', { kind: 'gas' }, 'gal', 8], ['🚲', 'Walked/biked instead', { kind: 'walk' }, 'km', 3],
+    ['🔌', 'Electricity (from bill)', { kind: 'kwh' }, 'kWh', 10], ['🔥', 'Natural gas (from bill)', { kind: 'therm' }, 'therms', 2]],
+  water: [['🚿', 'Shower', { kind: 'shower' }, 'min', 8], ['🧺', 'Laundry load', { kind: 'laundry', qty: 1 }]],
+  stuff: [['🧴', 'Plastic bottle', { kind: 'bottle', qty: 1 }], ['🥡', 'Takeout container', { kind: 'takeout', qty: 1 }], ['👕', 'Bought new clothes', { kind: 'new_clothes', qty: 1 }],
+    ['🗑️', 'Trash bag out', { kind: 'trash', qty: 1 }], ['🙅', 'Refused a single-use item', { kind: 'refuse', qty: 1 }]],
+};
+let PEND = [];
+const lineAmount = (x) => (x.cat === 'water' ? Math.round(x.liters || 0) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.cat === 'stuff' ? (x.items || 0) + ' item' : (x.kg || 0).toFixed(2) + ' kg');
+function composer(tab = 'food') {
+  if (!me) return;
+  const draw = () => {
+    const lines = PEND.map(FX.compute);
+    modal(`<h2>Log it</h2><div class="ctabs">${CATUI.map(([k, n]) => `<button data-ct="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</div>
+      <div class="qchips">${QL[tab].map((c, i) => c[3]
+        ? `<span class="step">${c[0]} ${c[1]} <input type="number" min="0" step="any" value="${c[4]}" id="qv${i}" aria-label="${c[3]}"> ${c[3]} <button data-qa="${i}">Add</button></span>`
+        : `<button data-qa="${i}">${c[0]} ${c[1]}</button>`).join('')}</div>
+      <div class="pend">${lines.map((x, i) => `<div class="li"><span>${esc(x.label)}<small>${esc(x.src)}${x.note ? ' · ' + esc(x.note) : ''}</small></span><b>${lineAmount(x)}</b><button class="x" data-rm="${i}" aria-label="Remove">✕</button></div>`).join('') || '<p class="small muted">Tap what you did today. The math uses cited factors.</p>'}</div>
+      <div class="row" style="justify-content:center"><button class="btn" id="qlGo" ${PEND.length ? '' : 'disabled'}>Log ${PEND.length || ''} item${PEND.length === 1 ? '' : 's'}</button><button class="btn ghost" data-close>Close</button></div>`);
+    document.querySelectorAll('[data-ct]').forEach((x) => (x.onclick = () => { tab = x.dataset.ct; draw(); }));
+    document.querySelectorAll('[data-qa]').forEach((x) => (x.onclick = () => {
+      const c = QL[tab][+x.dataset.qa];
+      const it = Object.assign({}, c[2]);
+      if (c[3]) { it.qty = +$('#qv' + x.dataset.qa).value || 0; if (!it.qty) return; }
+      PEND.push(it); draw();
+    }));
+    document.querySelectorAll('[data-rm]').forEach((x) => (x.onclick = () => { PEND.splice(+x.dataset.rm, 1); draw(); }));
+    $('#qlGo').onclick = () => { const items = PEND; PEND = []; submitLog(items, 'tap'); };
+  };
+  draw();
+}
+async function submitLog(items, via) {
+  const lines = items.map(FX.compute).filter((x) => !x.skip);
+  const kg = lines.reduce((a, x) => a + x.kg, 0), saved = lines.reduce((a, x) => a + x.saved, 0);
+  const act = { items, real: true, via };
+  closeModal();
+  if (mode === 'online') { const r = await api('api/act', { id: me.id, act }).catch(() => null); if (!r) return toast('Could not reach the server'); }
+  else { IA.human(W, me.id, act, false); receive(W); }
+  toast(`Logged ${lines.length} item${lines.length === 1 ? '' : 's'}: ${kg.toFixed(1)} kg CO₂e${saved ? `, saved ${saved.toFixed(1)}` : ''}. The agents react next tick.`, 3500);
+  openSheet('today');
+}
+
+// ------------------------------------------------------------------ receipt / bill scan: Claude extracts, factors do the math
+function scanFlow() {
+  if (!(mode === 'online' && HEALTH.llm && HEALTH.llm.ok)) {
+    modal(`<h2>Scan needs Claude</h2><p class="muted">Receipt and bill scanning runs on the server with an Anthropic key (ANTHROPIC_API_KEY). Claude only reads the line items. The carbon math uses cited EPA and Poore &amp; Nemecek factors, so it can't make up numbers.</p>
+      <div class="row" style="justify-content:center"><button class="btn" id="scQ">Log by tapping instead</button><button class="btn ghost" data-close>Close</button></div>`);
+    $('#scQ').onclick = () => composer();
+    return;
+  }
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+  inp.onchange = async () => {
+    const f = inp.files[0];
+    if (!f) return;
+    modal('<h2>Reading your receipt…</h2><p class="muted">Claude extracts the lines. The factors do the math.</p>');
+    const url = await new Promise((res) => {
+      const im = new Image();
+      im.onload = () => {
+        const k = Math.min(1, 1280 / Math.max(im.width, im.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', 0.85));
+      };
+      im.src = URL.createObjectURL(f);
+    });
+    const r = await fetch('api/scan', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: url }) }).then((x) => x.json()).catch((e) => ({ error: e.message }));
+    if (r.error) {
+      modal(`<h2>Scan failed</h2><p class="muted">${esc(r.error)}. You can log by tapping instead.</p><button class="btn" id="scQ">Log by tapping</button>`);
+      $('#scQ').onclick = () => composer();
+      return;
+    }
+    const items = r.items || [];
+    const draw = () => {
+      const lines = items.map(FX.compute);
+      modal(`<img src="${url}" alt="Your receipt" class="photo-prev"><h2>Found ${items.length} item${items.length === 1 ? '' : 's'}</h2>
+        <div class="pend">${lines.map((x, i) => `<div class="li"><span>${esc(x.label)}<small>${x.skip ? 'not counted (no cited factor)' : esc(x.src)}</small></span><b>${x.skip ? '·' : lineAmount(x)}</b><button class="x" data-rm="${i}" aria-label="Remove">✕</button></div>`).join('') || '<p class="small muted">Nothing readable. Try a clearer photo.</p>'}</div>
+        <div class="row" style="justify-content:center"><button class="btn" id="scGo" ${items.length ? '' : 'disabled'}>Log these</button><button class="btn ghost" data-close>Cancel</button></div>
+        <p class="small muted">Read by Claude. Numbers from cited factors, recomputed by Bruin.</p>`);
+      document.querySelectorAll('[data-rm]').forEach((x) => (x.onclick = () => { items.splice(+x.dataset.rm, 1); draw(); }));
+      $('#scGo').onclick = () => submitLog(items, 'scan');
+    };
+    draw();
+  };
+  inp.click();
+}

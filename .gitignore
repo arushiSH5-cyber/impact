@@ -11,3 +11,5 @@ logs/*.log
 __pycache__/
 *.py[cod]
 .bruin.yml
+# players' real logs stay local
+data/footprint_daily.csv

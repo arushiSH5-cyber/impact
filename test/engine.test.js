@@ -36,4 +36,18 @@ for (let i = 0; i < 200 && T.status === 'playing'; i++) IA.tick(T, null, mem2);
 const next = IA.create(43, null, mem2);
 assert.ok(next.log.some((e) => e.k === 'learn'), 'agents should remember the previous run');
 
+// carbon ledger: server-side math from cited factors, ledger quests, council
+{
+  const L = IA.create(42, null, {});
+  IA.join(L, { id: 'r', name: 'Riya' });
+  const e = IA.human(L, 'r', { real: true, items: [{ kind: 'meal', food: 'beef' }, { kind: 'drive', qty: 25 }, { kind: 'meal', food: 'unicorn' }] }, false);
+  assert.strictEqual(e.items.length, 2, 'unknown foods are skipped, not guessed');
+  assert.ok(Math.abs(L.players.r.led.food - 99.48 * 0.15) < 1e-9, 'beef meal = 99.48 kg/kg × 150 g');
+  for (let i = 0; i < 13; i++) IA.tick(L, null, {});
+  assert.ok(L.log.some((x) => x.k === 'quest' && x.agent === 'mossling' && /plant-based/.test(x.act)), 'Mossling reacts to the over-budget food log');
+  assert.ok(L.log.some((x) => x.k === 'council'), 'the council meets');
+  const done = IA.human(L, 'r', { real: true, items: [{ kind: 'meal', food: 'tofu' }] }, false);
+  assert.match(done.why, /Completed Mossling's quest/, 'a logged tofu meal completes the plant-based quest');
+}
+
 console.log(`ok · seed 42: ${a.status} (${a.avg}) · seed 7: ${c.status} (${c.avg}) · ${S.log.length} log entries`);
