@@ -23,10 +23,10 @@ const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } 
 function toItem(x) {
   const url = x.url || x.link || x.source_url || '';
   return {
-    title: String(x.title || x.name || x.headline || '').trim(),
+    title: String(x.title || x.name || x.headline || '').replace(/\s+/g, ' ').trim(),
     url,
     summary: String(x.snippet || x.description || x.summary || x.content || x.text || '').replace(/\s+/g, ' ').slice(0, 240),
-    published: x.published_date || x.published_at || x.date || '',
+    published: String(x.publish_date || x.published_date || x.published_at || x.date || '').slice(0, 10),
     source: host(url),
   };
 }
@@ -61,11 +61,21 @@ async function search(queries, num) {
 async function refresh() {
   if (day === today() && news.length) return;
   const qs = Object.values(ZONE_QUERIES);
-  const res = await search(qs, 2);
+  const res = await search(qs, 3);
+  // agents act on this, so prefer real recent news: dated within 14 days, newest first; undated pages only as a last resort
+  const since = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+  const rank = (list) => {
+    const seenUrl = new Set();
+    const notNews = (x) => /wikipedia\.org|weather\.com|accuweather/i.test(x.url) || /weather today|^weather /i.test(x.title);
+    const uniq = (list || []).filter((x) => !notNews(x) && !seenUrl.has(x.url) && seenUrl.add(x.url));
+    const fresh = uniq.filter((x) => x.published && x.published >= since).sort((a, b) => b.published.localeCompare(a.published));
+    const undated = uniq.filter((x) => !x.published && !/donate|volunteer|shop|subscribe/i.test(x.title));
+    return fresh.concat(undated);
+  };
   const nextFacts = {};
-  for (const [zone, q] of Object.entries(ZONE_QUERIES)) if (res[q] && res[q][0]) nextFacts[zone] = res[q][0];
+  for (const [zone, q] of Object.entries(ZONE_QUERIES)) { const best = rank(res[q])[0]; if (best) nextFacts[zone] = best; }
   const seen = new Set();
-  const items = Object.values(res).flat().filter((x) => !seen.has(x.url) && seen.add(x.url));
+  const items = rank(Object.values(res).flat()).filter((x) => !seen.has(x.url) && seen.add(x.url));
   if (!items.length) throw new Error('Telem returned no results');
   facts = nextFacts;
   news = items.slice(0, 8);

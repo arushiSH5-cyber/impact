@@ -99,8 +99,21 @@ module.exports = {
   health, fail,
   listen(fn) { onCommand = fn; },
   async init() {
-    if (!process.env.BAND_API_KEY || !chat()) return;
+    if (!process.env.BAND_API_KEY) return;
     me = await rest('GET', '/me');
+    if (!chat()) {
+      // no room id given: use the room the agent was added to (prefer "Maple St"); keep checking until there is one
+      const chats = await rest('GET', '/chats').catch(() => []);
+      const list = Array.isArray(chats) ? chats : chats.chats || [];
+      const room = list.find((c) => /maple/i.test(c.name || c.title || '')) || list[0];
+      if (!room) {
+        st.detail = `key verified (${me.name}) · waiting to be added to a room: in BAND, open your room and add ${me.name}`;
+        setTimeout(() => module.exports.init().catch((e) => fail(e.message)), 30000);
+        return;
+      }
+      process.env.BAND_CHAT_ID = room.id;
+      console.log(`BAND: found room "${room.name || room.title || room.id}"`);
+    }
     try {
       const people = await rest('GET', `/chats/${chat()}/participants`);
       const human = (Array.isArray(people) ? people : people.participants || []).find((x) => x.id !== me.id && !/agent/i.test(x.type || x.participant_type || ''));
