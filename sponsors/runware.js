@@ -10,6 +10,12 @@ const { st, health, fail } = status('set RUNWARE_API_KEY');
 const MODEL = process.env.RUNWARE_MODEL || 'runware:101@1';
 let images = 0, total = 0, keySet = false;
 const cache = {};
+// verified usage survives restarts (tied to a hash of the key, never the key itself)
+const fs = require('fs');
+const path = require('path');
+const USAGE = path.join(__dirname, '..', 'data', 'runware_usage.json');
+const keyHash = () => crypto.createHash('sha256').update(String(process.env.RUNWARE_API_KEY)).digest('hex').slice(0, 12);
+function save() { try { fs.writeFileSync(USAGE, JSON.stringify({ key: keyHash(), images, total, last: new Date().toISOString() })); } catch (e) { /* best effort */ } }
 
 async function generate(prompt) {
   const r = await fetch('https://api.runware.ai/v1', {
@@ -27,6 +33,7 @@ async function generate(prompt) {
   total += +d.cost || 0;
   st.ok = true;
   st.detail = `${images} images · total cost $${total.toFixed(4)}`;
+  save();
   return { url: d.imageURL, cost: d.cost != null ? +d.cost : null };
 }
 
@@ -39,6 +46,13 @@ module.exports = {
     if (!process.env.RUNWARE_API_KEY) return;
     keySet = true;
     st.detail = `key set · model ${MODEL} · no image yet`;
+    try {
+      const u = JSON.parse(fs.readFileSync(USAGE, 'utf8'));
+      if (u.key === keyHash() && u.images > 0) {
+        images = u.images; total = u.total; st.ok = true;
+        st.detail = `verified · ${images} images · total cost $${total.toFixed(4)} (last ${u.last.slice(11, 16)} UTC)`;
+      }
+    } catch (e) { /* no verified usage yet */ }
     // green only after the first real image (made on demand from the app)
   },
   async postcard(body) {

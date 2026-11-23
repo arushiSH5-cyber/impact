@@ -13,3 +13,4 @@ __pycache__/
 .bruin.yml
 # players' real logs stay local
 data/footprint_daily.csv
+data/runware_usage.json
