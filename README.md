@@ -19,9 +19,9 @@ Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it 
 
 ## Screenshots
 
-| Planet | Today | Story | Street |
-|---|---|---|---|
-| <img src="docs/screenshots/planet.jpg" width="200" alt="The shared planet with the five agents"> | <img src="docs/screenshots/today.jpg" width="200" alt="Today: CO2 ring vs the council budget"> | <img src="docs/screenshots/story.jpg" width="200" alt="Story: every agent decision with its reason"> | <img src="docs/screenshots/street.jpg" width="200" alt="Street: neighbors on the shared planet"> |
+| Planet | Today | Story | Street | Baron Duel |
+|---|---|---|---|---|
+| <img src="docs/screenshots/planet.jpg" width="200" alt="The shared planet with the five agents"> | <img src="docs/screenshots/today.jpg" width="200" alt="Today: CO2 ring vs the council budget"> | <img src="docs/screenshots/story.jpg" width="200" alt="Story: every agent decision with its reason"> | <img src="docs/screenshots/street.jpg" width="200" alt="Street: neighbors on the shared planet"> | <img src="docs/screenshots/duel.jpg" width="200" alt="Baron Duel: co-op Leaf/Wave/Fire with an AI teammate"> |
 
 ## Run it
 
@@ -70,6 +70,14 @@ Real actions (a Litter Hunt, a plant-based swap, a mission) earn **seeds**. Seed
 - **Shield:** the Baron's next target is shown live. Seeds put a shield on that zone: it blocks up to 80% of his next attack and makes him less likely to pick it.
 - **Tap a character** on the planet to see its mood and what it wants, give it seeds, or ask it for a personal mission.
 - **Story tab:** the run as a short feed of big moments (with faces); the full decision log with reasons and sources sits under a fold for judges.
+
+## Games (🎮 Play in the top bar)
+
+- **Baron Duel** (co-op, AI teammate): Leaf drinks Wave, Wave puts out Fire, Fire burns Leaf. You and the guardian of the weakest zone play together against the Smog Baron. The Baron is an agent that learns: he counters the move you play most. Your teammate reads his pattern out loud ("He keeps countering your Wave, so I'm going Fire!") and picks its own move. Best of 3; a win heals that zone for everyone.
+- **Smog Pop**: pop the Baron's smog blob in 20 seconds.
+- **Litter Hunt** and **Ask for a mission**: the real-life games that earn seeds.
+
+The Games screen and the Street screen show a live sponsor strip: a dot turns green only after that sponsor's real call worked.
 
 ## Litter Hunt and why people come back
 
@@ -120,7 +128,7 @@ The app's **Me → How Impact works** shows live status from `/api/health`. A sp
 | **Bruin** | Recomputes everyone's carbon ledger, feeds the agents live air data, audits every decision | ✅ **used**: validate + run pass (9 assets, 33 checks), live Open-Meteo data, server hot-reloads it |
 | **BAND** | The street's group chat is a real BAND room, both ways. **Out:** alliances, bribes, betrayals, missions, council meetings and run endings are posted with the agent's reason (max 1 per agent per minute). **In:** humans @mention Impact World with `status`, `rally ocean`, `budget`, `report`; a rally changes the shared planet for every player and is logged with source "BAND room" | ✅ **used: verified live**. Agent "Impact World" posts into the room over REST; the live WebSocket (Phoenix V2) is connected for incoming commands; startup backlog drain; claim → reply → processed |
 | **Telem** | Today's real news per zone changes what the agents do: alarming news (smoke, beach closures, smog alerts, low snowpack) raises that zone's guardian urgency and draws the Smog Baron toward it; the log cites the article with a link; Feed shows "Live · via Telem" reels | ✅ **used: verified live**. Example from today: forest news *"New wildfire reported in Los Angeles County on Nov. 23"* (sacbee.com) raised Mossling's urgency; only dated articles from the last 14 days are used, newest first |
-| **Runware** | Every run ends with a storybook postcard of the final planet (posted to the Feed and the BAND room), plus "Make my world postcard" on demand, with a running cost counter | ✅ **used: verified with real calls**. Postcards cost about $0.0057 each (runware:101@1, 1024×1024); total spent today ≈ $0.04 (7 images) |
+| **Runware** | **Character voices:** each agent speaks with its own Runware text-to-speech voice (Inworld TTS-2: Mossling = Pixie, Ripplet = Sarah, Frostbun = Olivia, Sunfox = Timothy, Smog Baron = Hades) in showdowns, the Baron Duel, cheers and the 🔊 button on every character card. **Story postcards:** every run ends with a storybook postcard of the final planet (Feed + BAND room), plus "Make my world postcard" on demand. Images stay on the side, never the main game view. | ✅ **used: verified with real calls**. Voice lines ≈ $0.002 each, postcards ≈ $0.006 each, cached per line / world state |
 | Glasser | Drop-off places in Bin Buddy | not used: we focused on the sponsors whose tools the game needs; adapter kept in `sponsors/glasser.js`, hidden in the app |
 | AI: Gemini (OpenAI optional) | Receipt/bill scanner (vision, extraction only, structured JSON) + one-line agent voices (max 1 per 30 s) | ✅ **used: Gemini verified with a real call**. A test grocery receipt came back as 6 correct items (paper towels, tax and totals skipped); footprints computed from the cited factors. The server picks the newest Flash model the key can actually use. OpenAI is wired as an automatic backup (same request retries on OpenAI if Gemini fails), but **not used today: the OpenAI account has no API credits** (`credit_balance_exhausted`) |
 | Lingcode | Wrap the PWA as an app | not used yet |

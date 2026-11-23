@@ -357,6 +357,11 @@ const routes = {
     if (!sponsors.telem.health().ok) return send(res, 503, { error: 'Telem not connected' });
     send(res, 200, { items: await sponsors.telem.news(), source: 'Telem' });
   },
+  async 'POST /api/voice'(req, res) {
+    if (!sponsors.runware.ready()) return send(res, 503, { error: 'Runware not configured' });
+    const b = await readBody(req);
+    try { send(res, 200, await sponsors.runware.speak(String(b.agent || ''), String(b.text || ''))); } catch (e) { send(res, 502, { error: e.message }); }
+  },
   async 'POST /api/postcard'(req, res) {
     if (!sponsors.runware.ready()) return send(res, 503, { error: 'Runware not configured' });
     try { send(res, 200, await sponsors.runware.postcard(await readBody(req))); } catch (e) { send(res, 502, { error: e.message }); }

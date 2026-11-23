@@ -37,6 +37,28 @@ async function generate(prompt) {
   return { url: d.imageURL, cost: d.cost != null ? +d.cost : null };
 }
 
+// Runware voices: each character speaks with its own text-to-speech voice (Inworld TTS-2 on Runware). Cached per line.
+const VOICES = {
+  mossling: { voice: 'Pixie', tag: '[speak cheerfully, warm and gentle]' },
+  ripplet: { voice: 'Sarah', tag: '[speak brightly, bubbly]' },
+  frostbun: { voice: 'Olivia', tag: '[speak softly and sweetly]' },
+  sunfox: { voice: 'Timothy', tag: '[speak slyly, playful]' },
+  baron: { voice: 'Hades', tag: '[speak like a dramatic cartoon villain, slow and sinister]' },
+};
+const voiceCache = {};
+let voices = 0;
+async function tts(text, voice) {
+  const r = await fetch('https://api.runware.ai/v1', {
+    signal: AbortSignal.timeout(30000), method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.RUNWARE_API_KEY },
+    body: JSON.stringify([{ taskType: 'audioInference', taskUUID: crypto.randomUUID(), model: process.env.RUNWARE_TTS_MODEL || 'inworld:tts@2', includeCost: true, speech: { text, voice } }]),
+  });
+  const j = await r.json().catch(() => ({}));
+  const d = (j.data || [])[0];
+  if (!r.ok || !d || !d.audioURL) throw new Error(`Runware voice ${r.status} ${JSON.stringify(j.errors || j).slice(0, 160)}`);
+  return d;
+}
+
 const mood = (v) => (v >= 70 ? 'lush and thriving' : v >= 40 ? 'recovering' : 'struggling and grey with smog');
 
 module.exports = {
@@ -54,6 +76,22 @@ module.exports = {
       }
     } catch (e) { /* no verified usage yet */ }
     // green only after the first real image (made on demand from the app)
+  },
+  async speak(agent, text) {
+    const v = VOICES[agent] || VOICES.mossling;
+    const line = String(text || '').replace(/[\[\]<>]/g, '').slice(0, 160).trim();
+    if (!line) throw new Error('nothing to say');
+    const key = agent + '|' + line;
+    if (voiceCache[key]) return Object.assign({ cached: true, total }, voiceCache[key]);
+    let d;
+    try { d = await tts(`${v.tag} ${line}`, v.voice); } catch (e) { d = await tts(`${v.tag} ${line}`, 'Sarah'); }
+    voices++;
+    total += +d.cost || 0;
+    st.ok = true;
+    st.detail = `${images} images · ${voices} voice lines · total cost $${total.toFixed(4)}`;
+    save();
+    voiceCache[key] = { url: d.audioURL, cost: d.cost != null ? +d.cost : null, voice: v.voice };
+    return Object.assign({ cached: false, total }, voiceCache[key]);
   },
   async postcard(body) {
     const H = body.H || {};

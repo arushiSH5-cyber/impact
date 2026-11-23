@@ -1,6 +1,6 @@
 :root {
-  --bg: #0f1b33;
-  --bg2: #1a2b4f;
+  --bg: #141a3d;
+  --bg2: #2c2f6e;
   --card: #fdfbf3;
   --card2: #f4efdf;
   --line: #e4dcc3;
@@ -21,7 +21,7 @@
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
 body {
-  background: radial-gradient(ellipse at 50% 40%, var(--bg2), var(--bg) 70%);
+  background: radial-gradient(circle at 20% 15%, rgba(255,160,210,.18), transparent 40%), radial-gradient(circle at 85% 80%, rgba(120,220,255,.16), transparent 45%), radial-gradient(ellipse at 50% 40%, var(--bg2), var(--bg) 72%);
   color: var(--ink);
   font: 600 15px/1.45 Nunito, system-ui, sans-serif;
 }
@@ -288,3 +288,45 @@ details.receipts[open] summary { margin-bottom: 10px; }
 #agentsBtn { display: none; }
 
 body.covered #labels, body.modal-open #labels { visibility: hidden; }
+
+/* ---- games hub + Baron Duel */
+.pill.games { background: linear-gradient(135deg, #ffd6ec, #d9ccff); border-color: #c9b6f2; color: #4a3577; }
+.gcard { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 10px 12px; margin: 10px 0; box-shadow: 0 4px 0 rgba(0,0,0,.08); position: relative; transition: transform .12s; }
+.gcard:active { transform: scale(.98); }
+.gcard img { width: 56px; height: 56px; border-radius: 16px; background: var(--card2); flex: none; }
+.gcard b { display: block; font: 700 22px Gaegu, cursive; }
+.gcard small { display: block; color: var(--mute); line-height: 1.3; }
+.gcard em { position: absolute; top: 8px; right: 10px; font-style: normal; font-size: 11px; font-weight: 800; background: var(--leaf-bg); color: #2f7a3a; border-radius: 999px; padding: 1px 8px; }
+.duel-score { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #e3f2df, #fbe4e1); border-radius: 20px; padding: 8px 12px; }
+.duel-score span { display: flex; align-items: center; gap: 4px; }
+.duel-score img { width: 40px; height: 40px; }
+.duel-score b { font: 700 34px Gaegu, cursive; margin: 0 6px; }
+.duel-score i { font-style: normal; color: var(--mute); font-weight: 800; }
+.duel-mate { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 4px; }
+.duel-mate img { width: 48px; height: 48px; flex: none; }
+.duel-mate p { margin: 0; background: #fff; border: 2px solid var(--ink); border-radius: 16px; padding: 8px 10px; }
+.duel-moves { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0; }
+.mv { background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 10px 4px; font-weight: 800; box-shadow: 0 5px 0 var(--line); display: grid; justify-items: center; gap: 2px; }
+.mv span { font-size: 40px; line-height: 1.1; }
+.mv:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--line); }
+.duel-end { text-align: center; border-radius: 20px; padding: 12px; margin: 12px 0; }
+.duel-end.good { background: var(--leaf-bg); }
+.duel-end.bad { background: var(--bad-bg); }
+.duel-end h2 { margin: 0; font-family: Gaegu, cursive; }
+.duel-log .dl { font-size: 13px; padding: 6px 10px; border-radius: 12px; background: var(--card2); margin: 6px 0; }
+.duel-log .dl.good { background: var(--leaf-bg); }
+.duel-log .dl.bad { background: var(--bad-bg); }
+@media (max-width: 440px) {
+  .hud-right { gap: 5px !important; flex-wrap: nowrap !important; }
+  .hud-right .pill { padding: 6px 8px; gap: 4px; }
+  #voiceBtn { padding: 6px 7px; }
+}
+.gcard { padding-top: 28px; }
+
+.sstrip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 14px; }
+.sstrip .sp { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; align-items: center; background: var(--card2); border: 2px solid var(--line); border-radius: 16px; padding: 7px 10px; }
+.sstrip .sp i { width: 9px; height: 9px; border-radius: 50%; background: #c9c2ad; }
+.sstrip .sp.ok { background: var(--leaf-bg); border-color: #bfe0b8; }
+.sstrip .sp.ok i { background: #3fae5e; box-shadow: 0 0 0 3px rgba(63,174,94,.2); animation: pulse 1.6s infinite; }
+.sstrip .sp small { grid-column: 2; color: var(--mute); line-height: 1.25; font-size: 11.5px; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(63,174,94,0); } }

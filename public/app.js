@@ -80,6 +80,36 @@ function localTick(S) {
   store.set('world', S); store.set('mem', localMem);
 }
 
+// ------------------------------------------------------------------ Runware voices: the characters talk out loud
+const voiceQ = [];
+let voiceBusy = false;
+async function speak(agent, text, force) {
+  if ((!voiceOn && !force) || !HEALTH.runware) return;
+  voiceQ.push({ agent, text });
+  if (voiceQ.length > 2) voiceQ.splice(0, voiceQ.length - 2); // never pile up old lines
+  if (voiceBusy) return;
+  voiceBusy = true;
+  while (voiceQ.length) {
+    const { agent: ag, text: t } = voiceQ.shift();
+    try {
+      const r = await api('/api/voice', { agent: ag, text: t });
+      if (r && r.url) await new Promise((ok) => { const a = new Audio(r.url); a.onended = ok; a.onerror = ok; a.play().catch(ok); setTimeout(ok, 12000); });
+    } catch (e) { /* voice is a nice-to-have */ }
+  }
+  voiceBusy = false;
+}
+function setVoiceBtn() { const b = $('#voiceBtn'); if (b) { b.textContent = voiceOn ? '🔊' : '🔇'; b.setAttribute('aria-pressed', voiceOn); } }
+setTimeout(() => {
+  setVoiceBtn();
+  const b = $('#voiceBtn');
+  if (b) b.onclick = () => {
+    voiceOn = !voiceOn; setVoiceBtn();
+    store.set('voice', voiceOn);
+    toast(voiceOn ? 'Voices on (Runware)' : 'Voices off');
+    if (voiceOn) speak('mossling', `Hi ${me ? me.name : 'friend'}! Let's heal the planet together!`);
+  };
+}, 0);
+
 async function api(path, body) {
   if (mode !== 'online') return null;
   const r = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -121,7 +151,7 @@ function receive(S) {
 function setNet() {
   const n = $('#net');
   n.className = 'pill stat net ' + (mode === 'online' ? 'on' : mode === 'offline' ? 'off' : '');
-  $('#netT').textContent = mode === 'online' ? `${online} online` : mode === 'offline' ? 'offline' : '…';
+  $("#netT").textContent = mode === "online" ? (innerWidth < 440 ? `${online}` : `${online} online`) : mode === 'offline' ? 'offline' : '…';
   n.title = mode === 'online' ? 'Connected: everyone sees the same world' : 'No server: agents run in this browser';
 }
 
@@ -154,10 +184,13 @@ let voiceOn = store.get('voice', false);
 function voice(S) {
   const fresh = S.log.filter((e) => !spoken.has(e.id));
   fresh.forEach((e) => spoken.add(e.id));
-  if (!voiceOn || !('speechSynthesis' in window) || spoken.size === fresh.length) return;
+  if (!voiceOn || spoken.size === fresh.length) return;
   const big = fresh.filter((e) => ['betray', 'quest', 'end', 'thank'].includes(e.k) && IA.AG[e.agent]).slice(-1)[0];
   if (!big) return;
   const def = IA.AG[big.agent];
+  // real character voices from Runware; the browser's speech is only a fallback
+  if (HEALTH.runware && HEALTH.runware.ok) return speak(big.agent, big.say || `${def.name} ${big.act}`);
+  if (!('speechSynthesis' in window)) return;
   const u = new SpeechSynthesisUtterance(big.say || `${def.name} ${big.act}`);
   u.pitch = def.voice.pitch; u.rate = def.voice.rate;
   speechSynthesis.cancel(); speechSynthesis.speak(u);
@@ -225,6 +258,7 @@ function renderSheet(live) {
 $('#sheetX').onclick = () => openSheet(null);
 document.querySelectorAll('#tabbar button').forEach((b) => (b.onclick = () => (b.dataset.tab === 'log' ? composer() : openSheet(b.dataset.tab === 'globe' ? null : b.dataset.tab))));
 $('#agentsBtn').onclick = () => openSheet('agents');
+$('#gamesBtn').onclick = () => openSheet('games');
 $('#meBtn').onclick = () => openSheet('me');
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else openSheet(null); } });
 
@@ -501,6 +535,7 @@ TABS.neighbors = {
   title: 'Neighbors',
   html() {
     return `<p class="small">Everyone on this server shares one planet.</p><div id="people"></div>
+      <h3>Powered live by</h3>${sponsorStrip()}
       <h3><svg class="dd" aria-hidden="true"><use href="#d-mail"/></svg> Invite someone</h3>
       <div class="box small">Same wifi? Open <b>${esc(inviteUrl())}</b> on another phone, then Share → Add to Home Screen.</div>
       <div class="row"><button class="btn ghost" id="shareB"><svg class="ic"><use href="#i-link"/></svg>Share link</button>
@@ -534,6 +569,128 @@ TABS.neighbors = {
     };
   },
 };
+
+// ------------------------------------------------------------------ live sponsor strip (green only after a real call worked)
+const SPONSOR_ROLES = [
+  ['bruin', 'Bruin', 'live air data → agent decisions + audit'],
+  ['band', 'BAND', 'agents post to a real chat room; rally from it'],
+  ['telem', 'Telem', 'today\'s real news moves the agents'],
+  ['runware', 'Runware', 'character voices + story postcards'],
+  ['llm', 'Gemini', 'receipt scanner'],
+];
+function sponsorStrip() {
+  return `<div class="sstrip">${SPONSOR_ROLES.map(([k, n, what]) => {
+    const ok = HEALTH[k] && HEALTH[k].ok;
+    return `<span class="sp ${ok ? 'ok' : ''}" title="${esc(what)}"><i></i><b>${n}</b><small>${esc(what)}</small></span>`;
+  }).join('')}</div>`;
+}
+
+// ------------------------------------------------------------------ Games hub
+TABS.games = {
+  title: 'Games',
+  html() {
+    const weak = IA.ZONES.filter((z) => z !== 'space').sort((a, b) => W.H[a] - W.H[b])[0];
+    const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
+    const card = (id, face, title, sub, tag) => `<button class="gcard" id="${id}"><img src="${faceURL(face, 96)}" alt=""><span><b>${title}</b><small>${sub}</small></span><em>${tag}</em></button>`;
+    return `<p class="small">Play with the agents. Games heal the planet a little; real-life games heal it a lot and earn seeds.</p>
+      ${card('gDuel', IA.AG.baron, 'Baron Duel', `Leaf · Wave · Fire vs the Smog Baron, with ${mate.name} on your team. He learns your moves.`, 'co-op · AI teammate')}
+      ${card('gPop', IA.AG.ripplet, 'Smog Pop', `Pop the Baron's smog blob over the ${ZN[W.raid.zone]} in 20 seconds.`, 'arcade')}
+      ${card('gHunt', IA.AG.ripplet, 'Litter Hunt', 'Walk 150 m, bin litter, snap proof. Heals the ocean and earns seeds.', 'real life · seeds')}
+      ${card('gMission', mate, 'Ask for a mission', `${mate.name} gives you a real-world quest that fits your day.`, 'real life · seeds')}
+      <h3>Powered live by</h3>${sponsorStrip()}`;
+  },
+  mount() {
+    $('#gDuel').onclick = () => openSheet('duel');
+    $('#gPop').onclick = () => openSheet('play');
+    $('#gHunt').onclick = litterHunt;
+    $('#gMission').onclick = async () => {
+      const weak = IA.ZONES.filter((z) => z !== 'space').sort((a, b) => W.H[a] - W.H[b])[0];
+      const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
+      const r = await back('mission', 0, mate.id);
+      if (r && r.quest) { openSheet(null); globe.say(mate.id, `${me.name}! I need you!`); doQuest(r.quest.kind); }
+    };
+  },
+};
+
+// ------------------------------------------------------------------ Baron Duel: co-op Leaf/Wave/Fire with an AI teammate
+// Leaf drinks Wave, Wave puts out Fire, Fire burns Leaf. The Baron is an agent that learns: he counters the move you
+// play most. Your teammate is an agent too: it reads the Baron's pattern out loud and picks its own move.
+const MOVES = { leaf: '🌱', wave: '💧', fire: '🔥' };
+const BEATS = { leaf: 'wave', wave: 'fire', fire: 'leaf' };
+const COUNTER = { wave: 'leaf', fire: 'wave', leaf: 'fire' }; // COUNTER[x] beats x
+const MNAME = { leaf: 'Leaf', wave: 'Wave', fire: 'Fire' };
+let duel = null;
+function duelNew() {
+  const weak = IA.ZONES.filter((z) => z !== 'space').sort((a, b) => W.H[a] - W.H[b])[0];
+  const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
+  duel = { round: 1, team: 0, baron: 0, mine: [], baronMoves: [], mate, zone: weak, log: [], done: false };
+}
+function baronPick() {
+  // count what the humans played; counter the favourite (with a little randomness so he can be read)
+  const c = { leaf: 0, wave: 0, fire: 0 };
+  duel.mine.forEach((m) => c[m]++);
+  const fav = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
+  if (!duel.mine.length || Math.random() < 0.3) return Object.keys(MOVES)[Math.floor(Math.random() * 3)];
+  return COUNTER[fav];
+}
+function mateAdvice() {
+  if (!duel.baronMoves.length) return { move: 'leaf', why: 'No idea yet what he likes. I\'ll start with Leaf!' };
+  const c = { leaf: 0, wave: 0, fire: 0 };
+  duel.mine.forEach((m) => c[m]++);
+  const fav = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
+  const predict = COUNTER[fav]; // the Baron will counter your favourite
+  return { move: COUNTER[predict], why: `He keeps countering your ${MNAME[fav]}. I bet he plays ${MNAME[predict]}, so I'm going ${MNAME[COUNTER[predict]]}!` };
+}
+TABS.duel = {
+  title: 'Baron Duel',
+  html() {
+    if (!duel || duel.done && duel.fresh) duelNew();
+    const adv = mateAdvice();
+    duel.adv = adv;
+    const res = (a, b) => (BEATS[a] === b ? 'win' : BEATS[b] === a ? 'lose' : 'tie');
+    return `<div class="duel">
+      <div class="duel-score"><span><img src="${myFace(64)}" alt=""><img src="${faceURL(duel.mate, 64)}" alt=""><b>${duel.team}</b></span><i>Round ${Math.min(3, duel.round)} of 3</i><span><b>${duel.baron}</b><img src="${faceURL(IA.AG.baron, 64)}" alt=""></span></div>
+      ${duel.done
+        ? `<div class="duel-end ${duel.team > duel.baron ? 'good' : 'bad'}"><h2>${duel.team > duel.baron ? 'You beat the Baron!' : duel.team === duel.baron ? 'A draw!' : 'The Baron wins this one'}</h2>
+            <p>${duel.team > duel.baron ? `${ZN[duel.zone]} +2 for everyone on the street.` : 'He\'s learning your moves. Mix it up next time!'}</p>
+            <button class="btn" id="dAgain">Play again</button></div>`
+        : `<div class="duel-mate"><img src="${faceURL(duel.mate, 64)}" alt=""><p><b>${duel.mate.name}:</b> “${esc(adv.why)}”</p></div>
+           <p class="small muted" style="text-align:center">Leaf drinks Wave · Wave puts out Fire · Fire burns Leaf</p>
+           <div class="duel-moves">${Object.keys(MOVES).map((m) => `<button class="mv" data-mv="${m}"><span>${MOVES[m]}</span>${MNAME[m]}</button>`).join('')}</div>`}
+      <div class="duel-log">${duel.log.slice().reverse().map((l) => `<div class="dl ${l.cls}">${l.html}</div>`).join('')}</div>
+    </div>`;
+  },
+  mount() {
+    if (duel && duel.round === 1 && !duel.log.length) speak('baron', 'Ah, a little duel. I will learn every move you make.');
+    document.querySelectorAll('#sheetB [data-mv]').forEach((b) => (b.onclick = () => duelPlay(b.dataset.mv)));
+    const again = $('#dAgain');
+    if (again) again.onclick = () => { duelNew(); renderSheet(false); };
+  },
+};
+async function duelPlay(mine) {
+  if (!duel || duel.done) return;
+  const bm = baronPick();
+  const mm = duel.adv.move;
+  const out = (a) => (BEATS[a] === bm ? 1 : BEATS[bm] === a ? -1 : 0);
+  const you = out(mine), mate = out(mm);
+  const pts = you + mate;
+  if (pts > 0) duel.team++; else if (pts < 0) duel.baron++;
+  duel.mine.push(mine); duel.baronMoves.push(bm);
+  const w = (r) => (r > 0 ? 'beat' : r < 0 ? 'lost to' : 'tied');
+  duel.log.push({ cls: pts > 0 ? 'good' : pts < 0 ? 'bad' : '', html: `R${duel.round}: you ${MOVES[mine]} ${w(you)} · ${esc(duel.mate.name)} ${MOVES[mm]} ${w(mate)} · Baron ${MOVES[bm]} → <b>${pts > 0 ? 'team point' : pts < 0 ? 'Baron point' : 'no point'}</b>` });
+  if (pts > 0) { globe.say(duel.mate.id, 'Teamwork!!'); speak(duel.mate.id, 'Yes! Teamwork!'); }
+  else if (pts < 0) { globe.say('baron', 'Predictable!'); speak('baron', 'Predictable. So very predictable.'); }
+  duel.round++;
+  if (duel.round > 3 || duel.team === 2 || duel.baron === 2) {
+    duel.done = true;
+    if (duel.team > duel.baron) {
+      confetti();
+      const act = { label: `beat the Smog Baron in a Baron Duel with ${duel.mate.name}`, deltas: { [duel.zone]: 2 }, raid: 40, real: false };
+      if (mode === 'online') await api('api/act', { id: me.id, act });
+    }
+  }
+  renderSheet(false);
+}
 
 // ------------------------------------------------------------------ Play: Smog Pop (in-game action)
 TABS.play = {
@@ -624,7 +781,7 @@ TABS.me = {
   mount() {
     this.live();
     $('#quizB').onclick = () => quiz(0);
-    $('#voiceB').onclick = () => { voiceOn = !voiceOn; store.set('voice', voiceOn); renderSheet(false); if (voiceOn) toast('Agents will speak big moments'); };
+    $('#voiceB').onclick = () => { voiceOn = !voiceOn; store.set('voice', voiceOn); setVoiceBtn(); renderSheet(false); if (voiceOn) toast('Agents will speak big moments'); };
   },
 };
 
@@ -737,7 +894,7 @@ TABS.today = {
     $('#tdScan').onclick = scanFlow;
     $('#tdGo').onclick = () => openSheet('go');
     $('#tdHunt').onclick = litterHunt;
-    $('#tdPlay').onclick = () => openSheet('play');
+    $('#tdPlay').onclick = () => openSheet('games');
     $('#tdFeed').onclick = () => openSheet('feed');
     document.querySelectorAll('#sheetB [data-qk]').forEach((x) => (x.onclick = () => doQuest(x.dataset.qk)));
   },
@@ -994,6 +1151,11 @@ function renderShow() {
   }
   if (!html || key === showDismissed) { el.hidden = true; return; }
   if (el.dataset.key === key && el.dataset.seeds === String(seeds) && el.dataset.tick === String(W.tick) && !el.hidden) return;
+  if (el.dataset.key !== key) {
+    if (key.startsWith('bribe')) speak('baron', `Sunfox, my dear… ${W.offer.amount} shiny seeds are yours if you look the other way.`);
+    else if (key.startsWith('res')) speak('sunfox', html.includes('stayed loyal') ? "Nope! I'm sticking with my friends!" : 'Hehe… sorry, guardians. A fox has to eat!');
+    else if (key.startsWith('threat')) speak('baron', `The ${ZN[W.threat.zone]} looks… delicious.`);
+  }
   el.dataset.key = key; el.dataset.seeds = seeds; el.dataset.tick = W.tick;
   el.innerHTML = html;
   el.hidden = false;
@@ -1020,12 +1182,22 @@ function openAgent(id) {
     <div class="chips" style="justify-content:center"><span class="chip">${d.role}</span><span class="chip">${mood}</span><span class="chip">energy ${a.energy}</span>${ally ? `<span class="chip ok">allied with ${ally}</span>` : ''}</div>
     <p><b>Wants:</b> ${want}</p>
     <p class="muted">${esc(a.last ? 'Just now: ' + a.last : d.bio)}</p>
+    <button class="btn ghost" id="agVoice">🔊 Hear ${d.name}</button>
     <p class="small">Trusts you: <b>${trustYou > 0.5 ? 'a lot' : trustYou > 0 ? 'a little' : 'not yet'}</b></p>
     ${id === 'baron'
       ? `<div class="show-btns" style="justify-content:center"><button class="btn" id="agShield" ${seeds < 5 || !W.threat ? 'disabled' : ''}>${dd('shield')} Shield ${W.threat ? ZN[W.threat.zone] : ''} +5</button></div>`
       : `<div class="show-btns" style="justify-content:center"><button class="btn" id="agMission">${dd('star')} Give me a mission</button><button class="btn ghost" id="agGift" ${seeds < 5 ? 'disabled' : ''}>${dd('gift')} Give 5 seeds</button></div>`}
     <p class="small muted">You have ${seeds} seeds. Earn more by doing real things: Litter Hunts, logging good swaps, missions.</p>`);
-  const s = $('#agShield'), m = $('#agMission'), g = $('#agGift');
+  const s = $('#agShield'), m = $('#agMission'), g = $('#agGift'), vb = $('#agVoice');
+  if (vb) vb.onclick = () => {
+    const nm = me ? me.name : 'friend';
+    const line = id === 'baron' ? 'Mwahaha. Soon this whole little planet will be grey, and all mine.'
+      : d.type === 'guardian'
+        ? (W.H[d.goal] < 40 ? `${nm}, the ${ZN[d.goal]} really needs you today. Please help!` : `The ${ZN[d.goal]} is feeling better! Thank you, ${nm}!`)
+        : `I go wherever the seeds are. I have ${a.seeds}. Got any more?`;
+    vb.disabled = true; vb.textContent = '🔊 …';
+    speak(id, line, true).then(() => { vb.disabled = false; vb.textContent = `🔊 Hear ${d.name}`; });
+  };
   if (s) s.onclick = async () => { const r = await back('shield', 5, W.threat.zone); if (r && !r.error) { closeModal(); toast('Shield up!'); } };
   if (g) g.onclick = async () => { const r = await back('gift', 5, id); if (r && !r.error) { closeModal(); globe.say(id, `Thank you ${me.name}!!`); toast(`${d.name} loves you a bit more`); } };
   if (m) m.onclick = async () => {
@@ -1044,7 +1216,7 @@ function cheerMe(S) {
     if (e.agent === 'human' && e.who === me.id && /Completed (\w+)'s quest/.test(e.why)) {
       const name = /Completed (\w+)'s quest/.exec(e.why)[1];
       const ag = IA.AGENTS.find((x) => x.name === name);
-      if (ag) globe.say(ag.id, `YOU DID IT, ${me.name.toUpperCase()}!`);
+      if (ag) { globe.say(ag.id, `YOU DID IT, ${me.name.toUpperCase()}!`); speak(ag.id, `You did it, ${me.name}! Thank you!`); }
       confetti();
     } else if (e.agent === 'human' && e.who === me.id && /Litter Hunt/.test(e.act)) {
       globe.say('ripplet', `Woo! Thanks ${me.name}!`); confetti();

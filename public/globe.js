@@ -10,8 +10,10 @@ const ZONE_DIR = {
   ocean: new THREE.Vector3(0.1, -0.55, 0.85).normalize(),
   space: new THREE.Vector3(-0.3, 0.75, 0.6).normalize(), // agents in space float above this point
 };
-const HEALTHY = { forest: '#56c46a', ice: '#f4fbff', desert: '#f2cf86', ocean: '#3ea4f0' };
-const SICK = { forest: '#7d6c52', ice: '#aab0b9', desert: '#a07f58', ocean: '#5a6b80' };
+// cute pastel palette: healthy zones pop, sick zones go dusty (not muddy) so the planet stays pretty while it's losing
+const HEALTHY = { forest: '#62d98a', ice: '#f3fbff', desert: '#ffd894', ocean: '#3fb2ff' };
+const SICK = { forest: '#b9a888', ice: '#c4c8d4', desert: '#cfa984', ocean: '#7d8fb0' };
+const SHALLOW = { healthy: '#8ee3ff', sick: '#9aa8c2' };
 const R = 1;
 
 export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
@@ -22,7 +24,7 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
   camera.position.set(0, 0.35, 4.4);
   camera.lookAt(0, 0, 0);
 
-  scene.add(new THREE.HemisphereLight(0xfff4e0, 0x223355, 1.25));
+  scene.add(new THREE.HemisphereLight(0xfff4e0, 0x334477, 1.2));
   const rim = new THREE.DirectionalLight(0x9fd0ff, 1.1);
   rim.position.set(-4, 1, -4);
   scene.add(rim);
@@ -32,8 +34,8 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
     c.width = c.height = 256;
     const x = c.getContext('2d');
     const g = x.createRadialGradient(128, 128, 60, 128, 128, 128);
-    g.addColorStop(0, 'rgba(140,200,255,0.55)');
-    g.addColorStop(0.55, 'rgba(110,170,255,0.18)');
+    g.addColorStop(0, 'rgba(170,215,255,0.6)');
+    g.addColorStop(0.55, 'rgba(200,170,255,0.22)');
     g.addColorStop(1, 'rgba(90,140,255,0)');
     x.fillStyle = g; x.fillRect(0, 0, 256, 256);
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false, transparent: true }));
@@ -54,6 +56,7 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
   const faceCount = pos.count / 3;
   const faceZone = [];
   const faceJitter = [];
+  const faceCoast = [];
   const colors = new Float32Array(pos.count * 3);
   const surfaceZones = ['forest', 'ice', 'desert', 'ocean'];
   const tmp = new THREE.Vector3();
@@ -63,15 +66,16 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
     tmp.normalize();
     // noisy nearest-zone so borders look organic
     const n = Math.sin(tmp.x * 9.1) * Math.cos(tmp.y * 7.3) * Math.sin(tmp.z * 8.7) * 0.18;
-    let best = 'ocean', bestD = -9;
+    let best = 'ocean', bestD = -9, second = -9;
     for (const z of surfaceZones) {
-      const bias = z === 'ocean' ? 0.12 : z === 'ice' ? (tmp.y > 0.72 ? 0.5 : -0.2) : 0;
+      const bias = z === 'ocean' ? 0.16 : z === 'ice' ? (tmp.y > 0.72 ? 0.5 : -0.2) : z === 'desert' ? -0.1 : 0.04;
       const d = tmp.dot(ZONE_DIR[z]) + bias + (z !== 'ocean' ? n : 0);
-      if (d > bestD) { bestD = d; best = z; }
+      if (d > bestD) { second = bestD; bestD = d; best = z; } else if (d > second) second = d;
     }
+    faceCoast.push(best === 'ocean' && bestD - second < 0.09); // shallow turquoise water along the coasts
     if (tmp.y < -0.85) best = 'ice'; // south pole
     faceZone.push(best);
-    faceJitter.push(0.92 + Math.random() * 0.16);
+    faceJitter.push(0.95 + Math.random() * 0.1);
     // raise land a touch for a voxel-ish relief
     if (best !== 'ocean') {
       // land relief: snowy peaks on the ice, rolling hills in the forest, dunes in the desert
@@ -84,7 +88,7 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geo.computeVertexNormals();
-  const planet = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }));
+  const planet = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.75 }));
   world.add(planet);
   // drifting puffy clouds
   const clouds = new THREE.Group();
@@ -109,7 +113,7 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
     for (let f = 0; f < faceCount; f++) {
       const z = faceZone[f];
       const h = Math.max(0, Math.min(1, (H[z] || 0) / 100));
-      a.set(SICK[z]); b.set(HEALTHY[z]);
+      if (faceCoast[f]) { a.set(SHALLOW.sick); b.set(SHALLOW.healthy); } else { a.set(SICK[z]); b.set(HEALTHY[z]); }
       c.copy(a).lerp(b, Math.pow(h, 0.8)).multiplyScalar(faceJitter[f]);
       for (let k = 0; k < 3; k++) colors.set([c.r, c.g, c.b], (f * 3 + k) * 3);
     }
@@ -120,12 +124,13 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
   const treeGroup = new THREE.Group();
   world.add(treeGroup);
   const trees = [];
-  const treeMat = new THREE.MeshStandardMaterial({ color: 0x3f9a52, flatShading: true });
+  const treeMat = new THREE.MeshToonMaterial({ color: 0x3fae5e });
+  const treeMat2 = new THREE.MeshToonMaterial({ color: 0x7fd36a });
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x7a5236, flatShading: true });
   for (let i = 0; i < 40; i++) {
     const d = ZONE_DIR.forest.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.7, (Math.random() - 0.5) * 0.9)).normalize();
     const t = new THREE.Group();
-    const top = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.09, 6), treeMat);
+    const top = i % 3 ? new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.09, 6), i % 2 ? treeMat : treeMat2) : new THREE.Mesh(new THREE.IcosahedronGeometry(0.04, 1), treeMat2);
     top.position.y = 0.07;
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.04, 5), trunkMat);
     trunk.position.y = 0.02;
@@ -135,8 +140,28 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
     treeGroup.add(t);
     trees.push(t);
   }
+  // little joys that appear as zones heal: flowers in the forest, cacti in the desert, sparkly crystals on the ice
+  const decor = [];
+  const flowerCols = [0xff8fb8, 0xffe066, 0xc9a0ff, 0xffffff, 0xff9f6b];
+  const addDecor = (zone, n, make, spread) => {
+    for (let i = 0; i < n; i++) {
+      const d = ZONE_DIR[zone].clone().add(new THREE.Vector3((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread * 0.8, (Math.random() - 0.5) * spread)).normalize();
+      const m = make(i);
+      m.position.copy(d.clone().multiplyScalar(R * (zone === 'ice' ? 1.04 : 1.022)));
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+      m.userData = { zone, rank: i / n, base: m.scale.x };
+      world.add(m);
+      decor.push(m);
+    }
+  };
+  addDecor('forest', 26, (i) => new THREE.Mesh(new THREE.IcosahedronGeometry(0.014, 0), new THREE.MeshToonMaterial({ color: flowerCols[i % flowerCols.length] })), 1.0);
+  const cactusMat = new THREE.MeshToonMaterial({ color: 0x5fbf6e });
+  addDecor('desert', 12, () => { const g = new THREE.Group(); const c = new THREE.Mesh(new THREE.CapsuleGeometry(0.012, 0.04, 3, 6), cactusMat); c.position.y = 0.03; const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.007, 0.018, 3, 6), cactusMat); arm.position.set(0.016, 0.035, 0); g.add(c, arm); return g; }, 0.8);
+  const crystalMat = new THREE.MeshToonMaterial({ color: 0xbfe9ff });
+  addDecor('ice', 10, () => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(0.022, 0), crystalMat); m.scale.y = 1.8; return m; }, 0.7);
+  addDecor('ocean', 8, () => { const m = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.005, 6, 12), new THREE.MeshToonMaterial({ color: 0xffffff })); m.rotation.x = Math.PI / 2; return m; }, 0.8);
   const smog = [];
-  const smogMat = new THREE.MeshStandardMaterial({ color: 0x5d566a, transparent: true, opacity: 0.75, flatShading: true });
+  const smogMat = new THREE.MeshStandardMaterial({ color: 0x6d5f86, transparent: true, opacity: 0.7, flatShading: true });
   for (const z of surfaceZones) {
     for (let i = 0; i < 7; i++) {
       const d = ZONE_DIR[z].clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.7, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.7)).normalize();
@@ -218,6 +243,7 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
     H = state.H;
     paint(H);
     trees.forEach((t, i) => { t.visible = i / trees.length < H.forest / 100 + 0.05; });
+    for (const m of decor) m.visible = m.userData.rank < (H[m.userData.zone] - 35) / 60;
     for (const a of state.agents) {
       const v = agents[a.id];
       if (!v) continue;
@@ -279,6 +305,7 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
       m.visible = show;
       m.rotation.y = t * 0.3 + m.userData.spin;
     }
+    for (const m of decor) if (m.visible) m.scale.setScalar(1 + Math.sin(t * 2 + m.userData.rank * 9) * 0.08);
     for (const m of debris) {
       const d = m.userData;
       m.visible = d.rank < (1 - H.space / 100) * 0.8;

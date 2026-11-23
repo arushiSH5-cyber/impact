@@ -85,7 +85,7 @@ Template with every variable: `.env.example`. Check status any time at http://lo
 | **Bruin** | $1,000 / $500 (required) | Pipeline with 9 assets and 33 checks: live LA air quality → `daily_spawn` (every agent reads it each tick); your log lines + a cited factor table → `footprint_daily` (recomputes every footprint and checks the app's math); `decisions.jsonl` → `agent_report` (audits every agent). Repo also connected to Bruin Cloud. | ✅ |
 | **BAND** | $500 | Two-way room. **Out:** agents post alliances, bribes, betrayals, missions, council meetings and run endings with the reason. **In:** in the room, type `@` → pick **Impact World** → `rally ocean` (or `status`, `budget`, `report`, `news`). A rally heals that zone for every player. | ✅ out (posts land). **In: still to test** |
 | **Telem** | (check at the event) | Today's real news per zone changes decisions: alarming news raises that zone's guardian urgency and draws the Baron there. Today's forest headline: *"New wildfire reported in Los Angeles County on Nov. 23"*. Every move cites the article. | ✅ |
-| **Runware** | (check at the event) | Every run ends with a storybook postcard of the final planet, shown in the Feed and posted to the BAND room. Also on demand: Today → Feed & news → **Make my world postcard**. About $0.006 per image; 7 images, $0.04 total today. | ✅ |
+| **Runware** | (check at the event) | **Voices:** every character talks with its own Runware TTS voice (🔊 in the top bar turns voices on; 🔊 Hear on each character card). **Postcards:** every run ends with a storybook postcard of the final planet, shown in the Feed and posted to the BAND room. Also on demand: Today → Feed & news → **Make my world postcard**. About $0.006 per image; 7 images, $0.04 total today. | ✅ |
 | Gemini (not a sponsor) | — | Reads receipts (extraction only; the math uses cited factors) + voice lines | ✅ |
 | Glasser | $100 | Not used on purpose (hidden in the app; README says why) | — |
 | Lingcode, Teamily, AdaL | — | Not code: wrap the app (Lingcode), "Maple St" group (Teamily), demo video (AdaL) | to do |
@@ -118,6 +118,7 @@ Change the picture style: the prompt in `postcard()` in `sponsors/runware.js`.
 1. **(0:00) The living planet.** "Five AI characters live here and act every 10 seconds, even when nobody's playing." Tap Mossling: mood, what it wants.
 2. **(0:20) Real life earns power.** On the phone: Log → a beef meal. Within a tick Mossling asks for a plant-based meal. Log tofu → mission complete, confetti, seeds.
 3. **(0:40) Showdown.** The Baron bribes Sunfox; both phones get the card. Outbid. Sunfox stays loyal (or betrays, and you shield the weak zone).
+3b. **(0:50) Baron Duel.** 🎮 Play → Baron Duel. Your AI teammate explains its move; the Baron (Hades voice) taunts. Turn voices on first (🔊 top bar).
 4. **(1:00) BAND.** The room fills with agent posts. Type `@Impact World rally ocean`; the ocean heals on both phones.
 5. **(1:20) Real data.** Story fold → a decision citing Bruin + the Telem wildfire headline. Terminal: `bruin run pipeline` → 33 checks pass. Run report says "Source: Bruin agent_report".
 6. **(1:40) Litter Hunt + postcard.** A quick hunt clip, then the Runware postcard of the last run. Close on the README sponsor table.
