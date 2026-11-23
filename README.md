@@ -57,6 +57,12 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 - **Missions from your log**: when you go over today's budget in a category, its agent reacts on the next tick (Mossling: food, Frostbun: travel and energy, Ripplet: water, Sunfox: stuff). Logging a tofu meal completes Mossling's "plant-based meal" mission.
 - **Council** (every 12 ticks): the agents read the street's real logs, and an under-budget guardian can give part of its budget to an over-budget one (if it trusts it). The Smog Baron lobbies for a "Black Friday flash sale"; Sunfox casts the deciding vote based on its greed and trust. The council also learns which nudges each person actually follows.
 
+## Litter Hunt and why people come back
+
+- **Litter Hunt** (Go! tab, Today tab, or Ripplet's "Do a 150 m Litter Hunt" mission): walk at least 150 m while the phone counts distance with GPS, tap **Binned one** and snap a photo for each piece of litter. The server computes the reward (client numbers are ignored): Ocean +1, plus up to +2 for the walk, plus 0.8 per piece with a photo. It completes Ripplet's mission and puts you on the street's **Top Litter Hunters** board. Location never leaves the phone, only the distance. GPS needs a secure (https) link; on plain http the hunt runs in honor mode and the walk counts less.
+- **Daily streak 🔥**: any real action counts for the day. On streak days 2, 3, 5, 7, 14 and 30 a guardian cheers you in the log and Forest, Ocean and Ice each get +1.
+- **The world keeps going**: agents act while you're away and the app shows "While you were away…", so there's always something new.
+
 ## How the agents decide (`public/agents-engine.js`, shared by server and browser)
 
 Every tick, each agent lists its options and scores them:

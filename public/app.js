@@ -94,6 +94,9 @@ function receive(S) {
   if (me) {
     const p = S.players[me.id];
     $('#seedN').textContent = p ? p.score : 0;
+    const alive = p && p.streakDay && (p.streakDay === new Date().toDateString() || p.streakDay === new Date(Date.now() - 864e5).toDateString());
+    $('#streakN').textContent = alive ? p.streak || 0 : 0;
+    $('#streakP').title = alive && p.streakDay !== new Date().toDateString() ? 'Do one real thing today to keep your streak' : 'Daily streak: do one real thing every day';
     $('#meLv').textContent = `Lv ${1 + Math.floor((p ? p.score : 0) / 25)}`;
     if (!p && mode === 'online') api('api/join', me);
   }
@@ -371,6 +374,7 @@ TABS.go = {
   html() {
     return `<p class="small">Real-life actions heal the world 2× more with a photo. The photo stays on your phone.</p>
       <div id="quests"></div>
+      <button class="hunt-card" id="huntB"><span class="hunt-emoji">🗺️</span><span><b>Litter Hunt</b><small>Walk 150 m, bin the litter you find, snap a photo. Ripplet cleans the ocean for every piece.</small></span><span class="btn">Start</span></button>
       <h3>🌍 Do something real</h3>
       <div class="acts">${ACTIONS.map((a) => `<button class="act" data-a="${a.id}"><b>${a.label}</b><small>${a.tip}</small></button>`).join('')}</div>
       <h3>♻️ Bin Buddy</h3>
@@ -393,6 +397,7 @@ TABS.go = {
   mount() {
     this.live();
     document.querySelectorAll('.act').forEach((b) => (b.onclick = () => doAction(b.dataset.a)));
+    $('#huntB').onclick = litterHunt;
     $('#binIn').oninput = (e) => binBuddy(e.target.value);
   },
 };
@@ -497,7 +502,9 @@ TABS.neighbors = {
     const el = $('#people');
     if (!el) return;
     const ps = Object.values(W.players).sort((a, b) => (b.seen || 0) - (a.seen || 0));
-    el.innerHTML = `<h3>🏠 Live on your street (${ps.length})</h3>` + (ps.map((p) => {
+    const hunters = ps.filter((p) => p.hunt && p.hunt.hunts).sort((a, b) => (b.hunt.pieces * 50 + b.hunt.meters) - (a.hunt.pieces * 50 + a.hunt.meters));
+    const board = hunters.length ? `<h3>🗺️ Top Litter Hunters</h3>` + hunters.slice(0, 5).map((p, i) => `<div class="li"><span>${['🥇', '🥈', '🥉'][i] || '·'} ${esc(p.name)}${me && p.id === me.id ? ' (you)' : ''}<small>${p.hunt.hunts} hunt${p.hunt.hunts === 1 ? '' : 's'} · ${p.hunt.meters} m walked (GPS)${p.streak ? ` · 🔥 ${p.streak}-day streak` : ''}</small></span><b>${p.hunt.pieces} pcs</b></div>`).join('') : '';
+    el.innerHTML = board + `<h3>🏠 Live on your street (${ps.length})</h3>` + (ps.map((p) => {
       const recent = Date.now() - (p.seen || 0) < 5 * 60000;
       return `<div class="entry human"><img src="${faceURL(BUDDIES.find((b) => b.id === p.av) || BUDDIES[0], 80)}" alt=""><div>
         <b>${esc(p.name)}</b>${me && p.id === me.id ? ' (you)' : ''} <span class="chip ${recent ? 'ok' : ''}">${recent ? 'active now' : 'seen ' + new Date(p.seen).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
@@ -707,7 +714,7 @@ TABS.today = {
       ${council.length ? `<h3>🏛️ Latest council decisions</h3>${council.map(entryHTML).join('')}` : ''}
       <h3>📒 Today's log</h3>${L.items.length ? L.items.slice().reverse().map((x) => `<div class="li"><span>${esc(x.label)}<small>${esc(x.src || '')}</small></span><b>${x.cat === 'water' ? Math.round(x.liters) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.kg ? x.kg.toFixed(2) + ' kg' : x.cat === 'stuff' ? 'item' : '·'}</b></div>`).join('') : '<p class="small muted">Log your first thing: the agents react on their next tick.</p>'}
       <h3>📊 Street footprint history</h3><div id="footOut">${FOOT ? footTable(FOOT) : '<p class="small muted">Loading…</p>'}</div>
-      <div class="row" style="margin-top:12px"><button class="btn ghost" id="tdGo">More real actions</button><button class="btn ghost" id="tdPlay">Smog Pop</button><button class="btn ghost" id="tdFeed">Feed &amp; news</button></div>`;
+      <div class="row" style="margin-top:12px"><button class="btn" id="tdHunt">🗺️ Litter Hunt</button><button class="btn ghost" id="tdGo">More real actions</button><button class="btn ghost" id="tdPlay">Smog Pop</button><button class="btn ghost" id="tdFeed">Feed &amp; news</button></div>`;
   },
   live() { const sc = $('#sheetB').scrollTop; $('#sheetB').innerHTML = this.html(); this.wire(); $('#sheetB').scrollTop = sc; },
   mount() { this.wire(); loadFoot(); },
@@ -715,6 +722,7 @@ TABS.today = {
     $('#tdLog').onclick = () => composer();
     $('#tdScan').onclick = scanFlow;
     $('#tdGo').onclick = () => openSheet('go');
+    $('#tdHunt').onclick = litterHunt;
     $('#tdPlay').onclick = () => openSheet('play');
     $('#tdFeed').onclick = () => openSheet('feed');
     document.querySelectorAll('#sheetB [data-qk]').forEach((x) => (x.onclick = () => doQuest(x.dataset.qk)));
@@ -733,6 +741,7 @@ async function loadFoot() {
 }
 // quests: ledger quests open the composer on the right category; others use the Go! actions
 function doQuest(kind) {
+  if (kind === 'hunt' || kind === 'litter') return litterHunt();
   const toComposer = { meal: 'food', leftovers: 'food', walk: 'travel', refuse: 'stuff', shower: 'water' };
   if (toComposer[kind]) return composer(toComposer[kind]);
   doAction(QUEST_ACTION[kind] || 'litter');
@@ -828,4 +837,77 @@ function scanFlow() {
     draw();
   };
   inp.click();
+}
+
+// ------------------------------------------------------------------ Litter Hunt: a real walk, counted by GPS, with photo proof
+const HUNT_GOAL_M = 150;
+let HUNT = null; // { watch, meters, last, pieces, photos, gps, started, err }
+function metersBetween(a, b) {
+  const R = 6371000, rad = (d) => (d * Math.PI) / 180;
+  const dLat = rad(b.latitude - a.latitude), dLon = rad(b.longitude - a.longitude);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.latitude)) * Math.cos(rad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function litterHunt() {
+  if (!me) return;
+  const gpsOk = 'geolocation' in navigator && window.isSecureContext;
+  modal(`<div class="hunt-hero">🗺️</div><h2>Litter Hunt</h2>
+    <p class="muted">Walk at least ${HUNT_GOAL_M} m around your block. Every time you bin a piece of litter, tap <b>Binned one</b> and snap a photo. Ripplet cleans the ocean for everyone on your street.</p>
+    <div class="hunt-rules small"><span>🚶 ${HUNT_GOAL_M} m walk: Ocean +2</span><span>🗑️ each piece with a photo: +0.8</span><span>⭐ completes Ripplet's mission</span></div>
+    ${gpsOk ? '' : `<p class="small hunt-warn">GPS needs a secure (https) link, so it's off on this connection. You can still hunt on your honor: litter counts, the walk counts less.</p>`}
+    <div class="row" style="justify-content:center"><button class="btn" id="huntGo">${gpsOk ? 'Start walking' : 'Start (honor mode)'}</button><button class="btn ghost" data-close>Not now</button></div>
+    <p class="small muted">Your location stays on this phone. Only the distance is sent. Photos stay on this phone too.</p>`);
+  $('#huntGo').onclick = () => startHunt(gpsOk);
+}
+function startHunt(gpsOk) {
+  HUNT = { meters: 0, last: null, pieces: 0, photos: 0, gps: false, started: Date.now(), err: '', watch: null };
+  if (gpsOk) {
+    HUNT.watch = navigator.geolocation.watchPosition((pos) => {
+      const c = pos.coords;
+      if (c.accuracy > 35) return; // too fuzzy to count
+      if (HUNT.last) {
+        const d = metersBetween(HUNT.last, c);
+        if (d < 4) return;          // GPS jitter while standing still
+        if (d < 80) HUNT.meters += d; // ignore teleports
+      }
+      HUNT.last = c;
+      HUNT.gps = true;
+      drawHunt();
+    }, (e) => { HUNT.err = e.code === 1 ? 'Location permission was denied, so this hunt is in honor mode.' : 'No GPS signal yet. Keep walking outside.'; drawHunt(); },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  }
+  drawHunt();
+}
+function drawHunt() {
+  if (!HUNT) return;
+  const pct = Math.min(100, (HUNT.meters / HUNT_GOAL_M) * 100);
+  const mins = Math.floor((Date.now() - HUNT.started) / 60000);
+  const canFinish = HUNT.meters >= HUNT_GOAL_M || HUNT.pieces > 0 || !HUNT.watch;
+  modal(`<h2>Litter Hunt</h2>
+    <div class="hunt-meter"><b>${Math.round(HUNT.meters)}</b><span>of ${HUNT_GOAL_M} m${HUNT.watch ? '' : ' (no GPS)'}</span></div>
+    <div class="cbar" style="height:14px"><i style="width:${pct}%;background:var(--sea)"></i></div>
+    <p class="small muted">${HUNT.err ? esc(HUNT.err) : HUNT.watch ? (HUNT.gps ? `Tracking your walk · ${mins} min` : 'Waiting for GPS… step outside') : 'Honor mode: walk your block, then finish.'}</p>
+    <div class="hunt-count">🗑️ ${HUNT.pieces} binned · 📷 ${HUNT.photos} photo${HUNT.photos === 1 ? '' : 's'}</div>
+    <label class="btn wide" style="margin:6px 0"><svg class="ic"><use href="#i-camera"/></svg>Binned one (snap it)<input type="file" accept="image/*" capture="environment" id="huntPhoto" hidden></label>
+    <button class="btn ghost wide" id="huntNoPhoto">Binned one (no photo)</button>
+    <div class="row" style="justify-content:center;margin-top:8px"><button class="btn" id="huntDone" ${canFinish ? '' : 'disabled'}>Finish hunt</button><button class="btn ghost" id="huntQuit">Cancel</button></div>`);
+  $('#huntPhoto').onchange = (e) => { if (e.target.files[0]) { HUNT.pieces++; HUNT.photos++; toast('Nice! +1 piece with photo'); drawHunt(); } };
+  $('#huntNoPhoto').onclick = () => { HUNT.pieces++; drawHunt(); };
+  $('#huntQuit').onclick = () => { stopHunt(); closeModal(); };
+  $('#huntDone').onclick = finishHunt;
+}
+function stopHunt() { if (HUNT && HUNT.watch != null) navigator.geolocation.clearWatch(HUNT.watch); }
+async function finishHunt() {
+  stopHunt();
+  const h = { meters: Math.round(HUNT.meters), pieces: HUNT.pieces, photos: HUNT.photos, gps: HUNT.gps };
+  HUNT = null;
+  const act = { hunt: h };
+  let entry = null;
+  if (mode === 'online') { const r = await api('api/act', { id: me.id, act }).catch(() => null); entry = r && r.entry; }
+  else { entry = IA.human(W, me.id, act, false); receive(W); }
+  modal(`<div class="hunt-hero">🌊</div><h2>Hunt complete!</h2>
+    <p><b>${h.gps ? `${h.meters} m walked` : 'Walk done (honor)'} · ${h.pieces} piece${h.pieces === 1 ? '' : 's'} binned</b></p>
+    <p class="muted">${entry ? esc(entry.why) : 'Saved.'}</p>
+    <p class="small muted">Ripplet will react on the next tick. Check the Street tab for the leaderboard.</p>
+    <button class="btn wide" data-close>Back to the planet</button>`);
 }

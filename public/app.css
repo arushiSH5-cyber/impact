@@ -217,3 +217,18 @@ input[type=text], input[type=search] { width: 100%; font: inherit; padding: 12px
 .qchips .step button { background: var(--leaf); color: #fff; border-radius: 999px; padding: 4px 12px; }
 .pend { max-height: 210px; overflow-y: auto; text-align: left; margin: 8px 0; }
 .entry.k-council { border-color: #9fd0a8; background: #f2faf2; }
+
+/* ---------- Litter Hunt ---------- */
+.hunt-card { width: 100%; display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; text-align: left; background: linear-gradient(135deg, #dceefc, #e3f2df); border: 2px solid #a9cdee; border-radius: 20px; padding: 14px; margin: 8px 0 4px; box-shadow: 0 4px 0 #a9cdee; }
+.hunt-card b { font: 700 24px Gaegu, cursive; display: block; }
+.hunt-card small { color: var(--mute); font-size: 13px; }
+.hunt-emoji { font-size: 40px; line-height: 1; }
+.hunt-hero { font-size: 56px; line-height: 1; }
+.hunt-rules { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0; }
+.hunt-rules span { background: var(--card2); border-radius: 999px; padding: 4px 10px; font-weight: 800; }
+.hunt-warn { background: var(--gold-bg); border-radius: 12px; padding: 8px 10px; }
+.hunt-meter { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 6px 0; }
+.hunt-meter b { font: 700 64px Gaegu, cursive; line-height: 1; }
+.hunt-meter span { color: var(--mute); font-weight: 800; }
+.hunt-count { font-weight: 800; font-size: 18px; margin: 8px 0; }
+@media (max-width: 420px) { .hunt-card { grid-template-columns: 40px 1fr; } .hunt-card .btn { grid-column: 1 / -1; } }

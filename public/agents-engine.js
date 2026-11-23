@@ -713,6 +713,25 @@
         act.deltas[z] = Math.round(((act.deltas[z] || 0) + d) * 10) / 10;
       }
     }
+    // Litter Hunt: a real walk (GPS meters) + litter binned (with photos). The reward is computed here, client deltas are ignored.
+    let hunt = null;
+    if (act.hunt && typeof act.hunt === 'object') {
+      const meters = clamp(Math.round(+act.hunt.meters || 0), 0, 5000);
+      const pieces = clamp(Math.round(+act.hunt.pieces || 0), 0, 40);
+      const photos = clamp(Math.round(+act.hunt.photos || 0), 0, 40);
+      const gps = !!act.hunt.gps && meters > 0;
+      hunt = { meters, pieces, photos, gps };
+      const walk = gps ? Math.min(2, meters / 150) : 0.5;
+      const litter = Math.min(5, pieces * (photos ? 0.8 : 0.4));
+      act.deltas = { ocean: Math.round((1 + walk + litter) * 10) / 10, forest: Math.round((0.5 + litter / 2) * 10) / 10 };
+      act.real = true;
+      act.proof = photos ? (gps ? 3 : 2) : 1;
+      act.label = `Litter Hunt: ${gps ? `walked ${meters} m` : 'walked (no GPS, honor)'}, binned ${pieces} piece${pieces === 1 ? '' : 's'}${photos ? ` (${photos} photo${photos === 1 ? '' : 's'})` : ''}`;
+      p.hunt = p.hunt || { meters: 0, pieces: 0, hunts: 0 };
+      p.hunt.meters += gps ? meters : 0;
+      p.hunt.pieces += pieces;
+      p.hunt.hunts++;
+    }
     for (const [z, d] of Object.entries(act.deltas || {})) {
       if (!ZONES.includes(z) || !isFinite(d)) continue;
       const dd = clamp(+d, -20, 30);
@@ -727,6 +746,18 @@
     }
     p.score += Math.round(total);
     p.acts++;
+
+    // daily streak: any real action counts for today; coming back on consecutive days builds it
+    let streakUp = false;
+    if (act.real) {
+      const today = todayKey();
+      if (p.streakDay !== today) {
+        const yesterday = new Date(Date.now() - 864e5).toDateString();
+        p.streak = p.streakDay === yesterday ? (p.streak || 0) + 1 : 1;
+        p.streakDay = today;
+        streakUp = [2, 3, 5, 7, 14, 30].includes(p.streak);
+      }
+    }
 
     // a real-world action in the quest's zone completes that agent's quest
     let questNote = '';
@@ -748,7 +779,7 @@
       const kg = logged.reduce((s2, x) => s2 + x.kg, 0), sv = logged.reduce((s2, x) => s2 + x.saved, 0);
       act.label = act.label || `logged ${logged.length} item${logged.length === 1 ? '' : 's'} (${kg.toFixed(1)} kg CO2e${sv ? `, saved ${sv.toFixed(1)}` : ''})`;
     }
-    const proof = logged ? `Real log${act.via === 'scan' ? ' from a scanned receipt/bill' : ''}. ` : act.real ? `Real-world action${act.proof > 1 ? ` with ${act.proof === 3 ? 'photo + walk' : 'photo'} proof (×${act.proof})` : ' (honor)'}. ` : 'In-game action. ';
+    const proof = hunt ? `Real-world Litter Hunt${hunt.gps ? ', walk tracked by GPS' : ' (walk on honor, no GPS)'}${hunt.photos ? ` + ${hunt.photos} photo${hunt.photos === 1 ? '' : 's'}` : ''}. ` : logged ? `Real log${act.via === 'scan' ? ' from a scanned receipt/bill' : ''}. ` : act.real ? `Real-world action${act.proof > 1 ? ` with ${act.proof === 3 ? 'photo + walk' : 'photo'} proof (×${act.proof})` : ' (honor)'}. ` : 'In-game action. ';
     const entry = log(S, {
       agent: 'human', who: pid, k: 'human',
       act: `${p.name}: ${String(act.label || 'helped').slice(0, 80)}`,
@@ -756,6 +787,18 @@
       src: logged ? ['player (real life)', 'cited emission factors (EPA, Poore & Nemecek)'] : [act.real ? 'player (real life)' : 'player (game)'],
     });
     if (logged) Object.defineProperty(entry, 'items', { value: logged, enumerable: false }); // for logs/ledger.jsonl, not broadcast
+    if (hunt) entry.hunt = hunt;
+    // the guardians notice people who keep coming back
+    if (streakUp) {
+      for (const z of ['forest', 'ocean', 'ice']) S.H[z] = clamp(S.H[z] + 1, 0, 100);
+      const fan = ['mossling', 'ripplet', 'frostbun'][p.streak % 3];
+      log(S, {
+        agent: fan, k: 'thank', target: 'h_' + pid,
+        act: `cheered ${p.name}'s ${p.streak}-day streak and boosted Forest, Ocean and Ice +1`,
+        why: `${p.name} has done something real ${p.streak} days in a row. Regulars are the guardians' best allies.`,
+        src: ['player streak'],
+      });
+    }
     return entry;
   }
 
