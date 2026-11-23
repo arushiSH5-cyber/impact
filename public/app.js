@@ -238,6 +238,7 @@ function entryHTML(e) {
     else chips.push(`<span class="chip ${/^Bruin/.test(s) ? 'ok' : ''}">${esc(s)}</span>`);
   }
   if (e.band) chips.push('<span class="chip gold">posted to BAND</span>');
+  if (e.postcard) chips.push(`<a class="chip ok" href="${esc(e.postcard)}" target="_blank" rel="noopener">Runware postcard</a>`);
   const who = e.agent === 'human' ? '' : `<span class="who">${esc(name(e.agent))}</span> `;
   return `<div class="entry k-${e.k}">${avatarFor(e)}<div>
     <div>${who}${esc(e.act)}</div>
@@ -435,8 +436,7 @@ function binBuddy(q) {
   const glasser = HEALTH.glasser && HEALTH.glasser.ok;
   out.innerHTML = hit
     ? `<div class="box"><b>${hit[1]}</b><div class="small">${hit[2]}</div>
-       <button class="btn ghost" id="placesB" style="margin-top:8px" ${glasser ? '' : 'disabled'}>Drop-off places near me</button>
-       ${glasser ? '' : '<div class="small muted">Place search is off: Glasser not connected on this server.</div>'}
+       ${glasser ? '<button class="btn ghost" id="placesB" style="margin-top:8px">Drop-off places near me</button>' : ''}
        <div id="placesOut"></div></div>`
     : '<div class="box small muted">Not sure about that one. When in doubt, check your city\'s guide. Wish-cycling contaminates whole bins.</div>';
   if (hit && glasser) $('#placesB').onclick = async () => {
@@ -457,7 +457,9 @@ TABS.feed = {
     $('#street').innerHTML = street.map((e) => `<div class="post"><div class="tag">${e.agent === 'human' ? 'Neighbor' : esc(name(e.agent))} · ${new Date(e.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
       <h4>${esc(e.act)}</h4><div class="small muted">${esc(e.why)}</div></div>`).join('') || '<p class="muted">Nothing yet. Do something real in Go!</p>';
     const pcBtn = HEALTH.runware && (HEALTH.runware.ok || /key set/.test(HEALTH.runware.detail || ''));
-    $('#pc').innerHTML = pcBtn ? '<div class="post postcard"><div class="tag">Your world · painted live by Runware</div><button class="btn" id="pcB" style="margin-top:6px">Make my world postcard</button><div id="pcOut"></div></div>' : '';
+    const cards = (W.postcards || []).slice().reverse();
+    const gallery = cards.length ? `<div class="post postcard"><div class="tag">Run postcards · painted by Runware from each run's final planet</div>${cards.map((c) => `<figure style="margin:8px 0"><img src="${esc(c.url)}" alt="Postcard of run ${c.seed}" loading="lazy"><figcaption class="small">Run ${c.seed}: ${c.status === 'won' ? 'guardians + humans won' : 'the Smog Baron won'}${c.cost != null ? ` · $${(+c.cost).toFixed(4)}` : ''}</figcaption></figure>`).join('')}</div>` : '';
+    $('#pc').innerHTML = gallery + (pcBtn ? '<div class="post postcard"><div class="tag">Your world · painted live by Runware</div><button class="btn" id="pcB" style="margin-top:6px">Make my world postcard</button><div id="pcOut"></div></div>' : '');
     if (pcBtn) $('#pcB').onclick = postcard;
     const tel = HEALTH.telem && HEALTH.telem.ok;
     if (!tel) { $('#news').innerHTML = '<p class="small muted">Live news reels are off (Telem not connected on this server).</p>'; return; }
@@ -484,7 +486,12 @@ TABS.neighbors = {
       <h3>📨 Invite someone</h3>
       <div class="box small">Same wifi? Open <b>${esc(location.origin)}</b> on another phone, then Share → Add to Home Screen.</div>
       <div class="row"><button class="btn ghost" id="shareB"><svg class="ic"><use href="#i-link"/></svg>Share link</button>
-      <a class="btn ghost" href="https://teamily.ai" target="_blank" rel="noopener">Open the Maple St group in Teamily</a></div>`;
+      <a class="btn ghost" href="https://teamily.ai" target="_blank" rel="noopener">Open the Maple St group in Teamily</a></div>
+      <h3>💬 The street's BAND room</h3>
+      <div class="box small">${HEALTH.band && HEALTH.band.ok
+        ? `The agents post their alliances, betrayals and council meetings into the BAND room, and you can steer them from there. Mention <b>Impact World</b> with <b>status</b>, <b>rally ocean</b> (or forest, ice, desert, space), <b>budget</b> or <b>report</b>. A rally changes the planet for everyone. <div class="muted" style="margin-top:4px">${esc(HEALTH.band.detail)}</div>`
+        : 'BAND is not connected on this server yet.'}</div>
+      <a class="btn ghost" href="https://app.band.ai" target="_blank" rel="noopener">Open BAND</a>`;
   },
   live() {
     const el = $('#people');
@@ -559,12 +566,12 @@ function footprint(p) {
   return t.toFixed(1);
 }
 const SPONSORS = [
-  ['bruin', 'Bruin', 'Pipeline feeding the agents live air data and auditing every decision'],
-  ['telem', 'Telem', 'Live news the agents cite + Feed news reels'],
-  ['band', 'BAND', 'Agent events posted to a real BAND room'],
-  ['runware', 'Runware', 'World postcard painted from live game state'],
+  ['bruin', 'Bruin', "Recomputes everyone's carbon ledger, feeds the agents live air data, audits every agent decision"],
+  ['band', 'BAND', "The street's group chat: agents post alliances, betrayals and council meetings; humans @mention Impact World to steer the planet"],
+  ['telem', 'Telem', "Today's real news per zone changes what the agents do (and is cited with a link)"],
+  ['runware', 'Runware', 'Every run ends with a storybook postcard of the final planet, shared in the Feed and the BAND room'],
+  ['llm', 'Gemini', 'Reads receipts and bills (extraction only) + agent voice lines'],
   ['glasser', 'Glasser', 'Real drop-off places in Bin Buddy'],
-  ['llm', 'Gemini / OpenAI', 'Reads receipts and bills (vision) + one-line agent voices'],
 ];
 TABS.me = {
   title: 'Me',
@@ -586,7 +593,7 @@ TABS.me = {
   live() {
     const el = $('#spons');
     if (!el) return;
-    el.innerHTML = SPONSORS.map(([k, n, what]) => {
+    el.innerHTML = SPONSORS.filter(([k]) => k !== 'glasser' || (HEALTH.glasser && HEALTH.glasser.ok)).map(([k, n, what]) => {
       const h = HEALTH[k];
       const ok = h && h.ok;
       return `<div class="box" style="display:flex;gap:10px;align-items:flex-start"><span class="chip ${ok ? 'ok' : ''}" style="flex:none">${ok ? '● live' : '○ off'}</span>

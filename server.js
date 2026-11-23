@@ -119,11 +119,24 @@ if (!S || !S.agents) {
   appendLog(S.log);
 }
 
+// What the agents read each tick: Bruin's daily_spawn plus today's Telem news signal per zone
+function spawnView() {
+  if (!sponsors.telem || !sponsors.telem.pressure) return SPAWN;
+  const base = SPAWN && SPAWN.length ? SPAWN : IA.SNAPSHOT;
+  return base.map((r) => {
+    const n = sponsors.telem.pressure(r.zone);
+    return n ? Object.assign({}, r, { news_pressure: n.pressure, news_title: n.title }) : r;
+  });
+}
+
 function step(live) {
-  const r = IA.tick(S, SPAWN, MEM);
+  const r = IA.tick(S, spawnView(), MEM);
+  const ended = r.entries.find((e) => e.k === 'end');
+  if (ended && live) postcardForRun(ended);
   if (r.restart) {
-    const players = S.players;
+    const players = S.players, postcards = S.postcards;
     S = IA.create(S.seed + 1, SPAWN, MEM);
+    S.postcards = postcards;
     for (const p of Object.values(players)) IA.join(S, p);
     r.entries = S.log.slice();
   }
@@ -165,14 +178,67 @@ function citeNews(entries) {
 }
 
 // Non-blocking sponsor work for important events: LLM voice line, BAND room post.
-const BIG = new Set(['betray', 'ally', 'quest', 'end', 'fight']);
+const BIG = new Set(['betray', 'ally', 'quest', 'end', 'fight', 'council']);
 async function enrich(entries) {
   for (const e of entries) {
     if (!BIG.has(e.k) || e.agent === 'human') continue;
-    try { const line = await sponsors.llm.say(e); if (line) { e.say = line; broadcast(); } } catch (err) { /* optional */ }
+    if (e.k !== 'council') { try { const line = await sponsors.llm.say(e); if (line) { e.say = line; broadcast(); } } catch (err) { /* optional */ } }
     try { if (await sponsors.band.post(e)) { e.band = true; persist(); broadcast(); } } catch (err) { /* stays unposted */ }
   }
 }
+
+// Runware: every run ends with a storybook postcard of the final planet, shared in the Feed and the BAND room
+async function postcardForRun(endEntry) {
+  if (!sponsors.runware.ready()) return;
+  const snap = { seed: S.seed, status: S.status, H: Object.assign({}, S.H), tick: S.tick };
+  const key = S.log.filter((e) => e.k === 'betray' && e.agent === 'sunfox').slice(-1)[0];
+  try {
+    const pc = await sponsors.runware.postcard({ H: snap.H, ending: snap.status === 'won' ? 'the guardians and humans won' : 'the Smog Baron won', twist: key ? 'a sly fox clutching a bag of seeds' : '' });
+    S.postcards = (S.postcards || []).concat([{ seed: snap.seed, status: snap.status, url: pc.url, cost: pc.cost, total: pc.total, cached: pc.cached, t: Date.now() }]).slice(-6);
+    endEntry.postcard = pc.url;
+    persist(); broadcast();
+    sponsors.band.say(`🖼️ Run ${snap.seed} postcard (${snap.status === 'won' ? 'guardians + humans won' : 'the Smog Baron won'}), painted by Runware from the final planet: ${pc.url}`);
+  } catch (e) { console.log(`Runware postcard failed: ${String(e.message).slice(0, 160)}`); }
+}
+
+// BAND: humans in the room steer the world by @mentioning the Impact World agent
+const ZONE_WORDS = { forest: 'forest', trees: 'forest', park: 'forest', ice: 'ice', snow: 'ice', mountain: 'ice', desert: 'desert', city: 'desert', air: 'desert', ocean: 'ocean', beach: 'ocean', sea: 'ocean', space: 'space', orbit: 'space' };
+const GUARD = { forest: 'Mossling', ice: 'Frostbun', ocean: 'Ripplet', desert: 'Sunfox', space: 'the guardians' };
+function statusText() {
+  const z = IA.ZONES.map((k) => `${IA.ZN[k]} ${Math.round(S.H[k])}`).join(' · ');
+  const last = S.log.filter((e) => ['betray', 'ally', 'fight', 'council'].includes(e.k)).slice(-1)[0];
+  return `Run ${S.seed}, tick ${Math.min(S.tick, IA.ROUND)}/${IA.ROUND}. Planet ${Math.round(IA.avgH(S))}/100 (${z}). ${Object.keys(S.players).length} humans on the street.${last ? ` Latest: ${IA.AG[last.agent] ? IA.AG[last.agent].name : 'World'} ${last.act}.` : ''}`;
+}
+sponsors.band.listen(async (text, from) => {
+  const t = text.toLowerCase();
+  const zw = Object.keys(ZONE_WORDS).find((w) => new RegExp(`\\b${w}\\b`).test(t));
+  if (/\b(rally|help|save|heal|protect|defend)\b/.test(t) && zw) {
+    const z = ZONE_WORDS[zw];
+    const pid = 'band_' + from.id;
+    IA.join(S, { id: pid, name: String(from.name || 'BAND friend').slice(0, 16) });
+    const e = IA.human(S, pid, { label: `rallied the street for ${IA.ZN[z]} from the BAND room`, deltas: { [z]: 3 }, real: false }, false);
+    e.src = ['BAND room (human command)'];
+    appendLog([e]); persist(); broadcast();
+    return `Rally logged for ${IA.ZN[z]}: +3 health and +3 human attention, so the Smog Baron is now less likely to target it. ${GUARD[z]} will react on the next tick. ${IA.ZN[z]} is at ${Math.round(S.H[z])}.`;
+  }
+  if (/\b(status|planet|how)\b/.test(t)) return statusText();
+  if (/\bbudget|council\b/.test(t)) {
+    const b = S.budget || IA.DEFAULT_BUDGET;
+    const c = S.log.filter((e) => e.k === 'council').slice(-2).map((e) => `${IA.AG[e.agent] ? IA.AG[e.agent].name + ' ' : ''}${e.act}`).join(' / ');
+    return `Today's street budget per person: food ${b.food} kg CO2e, travel ${b.travel} kg, water ${b.water} L, stuff ${b.stuff} items.${c ? ` Last council: ${c}.` : ''}`;
+  }
+  if (/\b(report|audit|bruin)\b/.test(t)) {
+    const rows = readCSV(REPORT_FILE);
+    const src = rows && rows.length ? 'Bruin agent_report' : 'live log (Bruin not run yet)';
+    const list = (rows && rows.length ? rows : IA.report(S.log)).map((r) => `${r.agent}: ${r.betrayals_and_bribes} betrayals/bribes, ${r.allies} alliances, ${r.fights} fights`).join('; ');
+    return `Agent audit (${src}): ${list}.`;
+  }
+  if (/\bnews\b/.test(t) && sponsors.telem.health().ok) {
+    const items = await sponsors.telem.news();
+    return items.slice(0, 3).map((n) => `${n.title} (${n.url})`).join('\n') || 'No fresh news today.';
+  }
+  return `Hi ${from.name}! Mention me with: "status", "rally ocean" (or forest, ice, desert, space), "budget", "report"${sponsors.telem.health().ok ? ', "news"' : ''}. Rallies change the shared planet for everyone playing.`;
+});
 
 // ------------------------------------------------------------------ SSE multiplayer
 const clients = new Set();
@@ -237,8 +303,9 @@ const routes = {
   },
   async 'POST /api/new'(req, res) {
     const b = await readBody(req);
-    const players = S.players;
+    const players = S.players, postcards = S.postcards;
     S = IA.create(+b.seed || S.seed + 1, SPAWN, MEM);
+    S.postcards = postcards;
     for (const p of Object.values(players)) IA.join(S, p);
     appendLog(S.log); persist(); broadcast();
     send(res, 200, { ok: true, seed: S.seed });

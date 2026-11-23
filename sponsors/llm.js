@@ -55,7 +55,7 @@ const GEMINI = 'https://generativelanguage.googleapis.com/v1beta';
 async function geminiPickModel() {
   if (process.env.GEMINI_MODEL) return process.env.GEMINI_MODEL.replace(/^models\//, '');
   // ask which models this key can use; prefer a regular Flash model (fast, cheap, vision + JSON)
-  const r = await fetch(`${GEMINI}/models?pageSize=200`, { headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY } });
+  const r = await fetch(`${GEMINI}/models?pageSize=200`, { signal: AbortSignal.timeout(20000), headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY } });
   if (!r.ok) throw await readError(r, 'Gemini models');
   const names = ((await r.json()).models || [])
     .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
@@ -75,6 +75,7 @@ async function geminiPickModel() {
 async function gemini(parts, json, model) {
   const generationConfig = json ? { responseMimeType: 'application/json', responseJsonSchema: ITEM_SCHEMA } : {};
   const r = await fetch(`${GEMINI}/models/${model}:generateContent`, {
+    signal: AbortSignal.timeout(+process.env.AI_TIMEOUT_MS || 45000),
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
     body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig }),
@@ -91,6 +92,7 @@ async function openai(content, json, model) {
   const body = { model, input: [{ role: 'user', content }] };
   if (json) body.text = { format: { type: 'json_schema', name: 'receipt_items', strict: true, schema: ITEM_SCHEMA } };
   const r = await fetch('https://api.openai.com/v1/responses', {
+    signal: AbortSignal.timeout(+process.env.AI_TIMEOUT_MS || 45000),
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.OPENAI_API_KEY },
     body: JSON.stringify(body),
@@ -111,7 +113,7 @@ async function openaiPickModel() {
   const ready = async (m) => !!(await openai([{ type: 'input_text', text: 'Reply with the single word: ready' }], false, m));
   if (process.env.OPENAI_MODEL) { await ready(process.env.OPENAI_MODEL); return process.env.OPENAI_MODEL; }
   // ask which models this key can use; prefer the newest general GPT model (small "mini" ones first: fast and cheap)
-  const r = await fetch('https://api.openai.com/v1/models', { headers: { authorization: 'Bearer ' + process.env.OPENAI_API_KEY } });
+  const r = await fetch('https://api.openai.com/v1/models', { signal: AbortSignal.timeout(20000), headers: { authorization: 'Bearer ' + process.env.OPENAI_API_KEY } });
   if (!r.ok) throw await readError(r, 'OpenAI models');
   const all = ((await r.json()).data || []).filter((m) => /^gpt-\d/.test(m.id) && !/(audio|realtime|transcribe|tts|image|search|codex|instruct|\d{4}-\d{2}-\d{2})/.test(m.id))
     .sort((a, b) => (b.created || 0) - (a.created || 0)).map((m) => m.id);

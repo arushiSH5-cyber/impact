@@ -209,12 +209,15 @@
     let urgency = gap;
     if (Z === 'ice' && sp.ice.heat > 0.3) urgency += 0.15;       // warm day: ice melts faster
     if (Z === 'forest' && sp.forest.smog_pressure > 0.3) urgency += 0.1;
+    const news = +sp[Z].news_pressure || 0; // Telem: today's real news about this zone
+    urgency += news;
+    const newsWhy = news ? `; today's news: "${sp[Z].news_title}"` : '';
 
     if (a.zone !== Z) {
       O.push({ t: 'travel', to: Z, s: 0.45 + gap, why: `its home ${ZONE_NAME[Z]} is at ${S.H[Z].toFixed(0)}, below its goal of ${GOAL_HEALTH}` });
     } else {
       O.push({ t: 'tend', s: 0.18 + urgency * 1.1 + a.energy / 600,
-        why: `${ZONE_NAME[Z]} health ${S.H[Z].toFixed(0)} is below its goal of ${GOAL_HEALTH}${allied ? `, and its alliance with ${BY_ID[a.ally].name} boosts it` : ''}` });
+        why: `${ZONE_NAME[Z]} health ${S.H[Z].toFixed(0)} is below its goal of ${GOAL_HEALTH}${allied ? `, and its alliance with ${BY_ID[a.ally].name} boosts it` : ''}${newsWhy}` });
     }
     O.push({ t: 'rest', s: 0.12 + (1 - a.energy / 100) * 0.55, why: `energy ${a.energy}/100` });
 
@@ -282,7 +285,7 @@
     const O = [];
     const totalAttention = ZONES.reduce((s, z) => s + S.attn[z], 0);
     // target: low health, ignored by humans, and smoggy in real life
-    const appeal = (z) => S.H[z] + S.attn[z] * 3 - sp[z].smog_pressure * 12;
+    const appeal = (z) => S.H[z] + S.attn[z] * 3 - sp[z].smog_pressure * 12 - (+sp[z].news_pressure || 0) * 15; // bad news = an easy target
     const target = ZONES.slice().sort((x, y) => appeal(x) - appeal(y))[0];
 
     if (a.energy >= 12) {
@@ -290,6 +293,8 @@
       O.push({ t: 'pollute', to, s: 0.32 + a.tr.aggro * 0.12 + sp[target].smog_pressure * 0.25 + (S.intel ? 0.2 : 0),
         why: S.intel
           ? `Sunfox leaked that ${ZONE_NAME[S.intel]} is weak`
+          : sp[target].news_pressure
+          ? `today's news says "${sp[target].news_title}", so ${ZONE_NAME[target]} is an easy target`
           : `${ZONE_NAME[target]} is weak (${S.H[target].toFixed(0)}), humans ignore it, and ${target === 'space' ? 'debris' : 'PM2.5 ' + sp[target].pm25} helps the smog` });
     }
     if (!S.offer && a.seeds >= 10) {

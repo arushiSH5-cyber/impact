@@ -34,6 +34,7 @@ function toItem(x) {
 async function search(queries, num) {
   const since = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
   const r = await fetch(BASE() + '/v1/search', {
+    signal: AbortSignal.timeout(+process.env.AI_TIMEOUT_MS || 45000),
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.TELEM_API_KEY },
     body: JSON.stringify({ user_input: queries.map((query) => ({ query })), search: { auto_routing: 'accuracy', num_results: num, published_after: since } }),
@@ -72,7 +73,25 @@ async function refresh() {
   st.detail = `${calls} searches · ${news.length} live items today · ${Object.keys(facts).length} zones cited`;
 }
 
+// Today's news per zone becomes a pressure signal the agents act on (not just a citation):
+// alarming news for a zone raises its guardian's urgency and draws the Smog Baron toward it.
+const ALARM = {
+  forest: /wildfire|fire|smoke|burn|drought|tree (loss|die|death)|red flag/i,
+  ice: /snowpack|heat ?wave|record heat|warm|melt|low snow|drought/i,
+  desert: /smog|air quality|unhealthy|ozone|pollution|haze|spare the air/i,
+  ocean: /sewage|spill|closure|closed|bacteria|plastic|pollution|runoff|advisory/i,
+  space: /debris|collision|junk|reentry/i,
+};
+function pressureOf(zone) {
+  const f = facts[zone];
+  if (!f) return null;
+  const text = `${f.title} ${f.summary}`;
+  const hits = (text.match(new RegExp(ALARM[zone].source, 'gi')) || []).length;
+  return { pressure: hits ? Math.min(0.3, 0.12 + hits * 0.06) : 0, title: f.title.slice(0, 90), url: f.url, source: f.source };
+}
+
 module.exports = {
+  pressure(zone) { if (!st.ok) return null; const p = pressureOf(zone); return p && p.pressure > 0 ? p : null; },
   health, fail,
   async init() {
     if (!process.env.TELEM_API_KEY) return;

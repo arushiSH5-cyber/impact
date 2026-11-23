@@ -13,6 +13,7 @@ const cache = {};
 
 async function generate(prompt) {
   const r = await fetch('https://api.runware.ai/v1', {
+    signal: AbortSignal.timeout(+process.env.AI_TIMEOUT_MS || 45000),
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.RUNWARE_API_KEY },
     body: JSON.stringify([{ taskType: 'imageInference', taskUUID: crypto.randomUUID(), positivePrompt: prompt, model: MODEL,
@@ -43,11 +44,12 @@ module.exports = {
   async postcard(body) {
     const H = body.H || {};
     const bucket = (v) => (v >= 70 ? 2 : v >= 40 ? 1 : 0);
-    const key = ['forest', 'ice', 'desert', 'ocean'].map((z) => bucket(+H[z] || 0)).join('');
+    const key = ['forest', 'ice', 'desert', 'ocean'].map((z) => bucket(+H[z] || 0)).join('') + (body.ending || '') + (body.twist || '');
     if (cache[key]) return Object.assign({ cached: true, total }, cache[key]);
     const prompt = `cute cozy hand-drawn storybook postcard of a tiny round planet floating in space, pastel colors, thick ink outlines, `
       + `a forest that is ${mood(H.forest)}, polar ice that is ${mood(H.ice)}, a desert oasis that is ${mood(H.desert)}, `
-      + `an ocean that is ${mood(H.ocean)}, little smiling moss sprite waving, stars, no text`;
+      + `an ocean that is ${mood(H.ocean)}, little smiling moss sprite waving, stars, no text`
+      + (body.ending ? `, the story ends: ${body.ending}` : '') + (body.twist ? `, ${body.twist}` : '');
     const out = await generate(prompt);
     cache[key] = Object.assign({ prompt }, out);
     return Object.assign({ cached: false, total }, cache[key]);
