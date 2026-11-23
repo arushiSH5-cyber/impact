@@ -5,3 +5,9 @@ data/state.json
 data/agent_memory.json
 logs/
 .DS_Store
+
+.bruin.yml
+logs/runs
+logs/*.log
+__pycache__/
+*.py[cod]
