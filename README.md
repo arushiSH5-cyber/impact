@@ -17,6 +17,12 @@ Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it 
                        logs/decisions.jsonl ─► Bruin marts.agent_report (audit) ─► in-app "Run report"
 ```
 
+## Screenshots
+
+| Planet | Today | Story | Street |
+|---|---|---|---|
+| <img src="docs/screenshots/planet.jpg" width="200" alt="The shared planet with the five agents"> | <img src="docs/screenshots/today.jpg" width="200" alt="Today: CO2 ring vs the council budget"> | <img src="docs/screenshots/story.jpg" width="200" alt="Story: every agent decision with its reason"> | <img src="docs/screenshots/street.jpg" width="200" alt="Street: neighbors on the shared planet"> |
+
 ## Run it
 
 Needs Node 20.12+ (for `--env-file-if-exists`). No npm install: the server has zero dependencies.

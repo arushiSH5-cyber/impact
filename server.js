@@ -249,7 +249,9 @@ function health() {
   }
   return h;
 }
-const snapshot = () => ({ state: S, health: health(), tickMs: TICK_MS, online: clients.size });
+const lanUrls = () => Object.values(os.networkInterfaces()).flat()
+  .filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => `http://${i.address}:${PORT}`);
+const snapshot = () => ({ state: S, health: health(), tickMs: TICK_MS, online: clients.size, lan: lanUrls() });
 function broadcast() {
   const msg = `data: ${JSON.stringify(snapshot())}\n\n`;
   for (const c of clients) c.write(msg);
@@ -386,8 +388,7 @@ http.createServer(async (req, res) => {
     send(res, 500, { error: 'server error' });
   }
 }).listen(PORT, '0.0.0.0', () => {
-  const lan = Object.values(os.networkInterfaces()).flat()
-    .filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => `http://${i.address}:${PORT}`);
+  const lan = lanUrls();
   console.log(`Impact running: http://localhost:${PORT}   phones on the same wifi: ${lan.join(', ') || 'n/a'}`);
   console.log(`Agents tick every ${TICK_MS / 1000}s · seed ${S.seed} · tick ${S.tick} · Bruin: ${SPAWN ? 'ok' : 'off'} (${spawnInfo})`);
   sponsors.init().then(() => {

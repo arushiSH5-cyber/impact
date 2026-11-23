@@ -27,6 +27,9 @@ const myFace = (size) => faceURL(Object.assign({}, myBuddy()), size);
 // ------------------------------------------------------------------ world connection
 let W = null;            // the shared state
 let HEALTH = {};
+let LAN = [];
+// On the laptop (localhost) a phone can't use that address, so invite with the wifi address instead.
+const inviteUrl = () => (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && LAN[0]) || location.origin;
 let online = 0;
 let mode = 'connecting'; // 'online' | 'offline'
 let tickMs = 10000;
@@ -45,6 +48,7 @@ function connect() {
     const d = JSON.parse(m.data);
     mode = 'online';
     HEALTH = d.health || {};
+    LAN = d.lan || [];
     online = d.online || 1;
     tickMs = d.tickMs || tickMs;
     receive(d.state);
@@ -498,7 +502,7 @@ TABS.neighbors = {
   html() {
     return `<p class="small">Everyone on this server shares one planet.</p><div id="people"></div>
       <h3><svg class="dd" aria-hidden="true"><use href="#d-mail"/></svg> Invite someone</h3>
-      <div class="box small">Same wifi? Open <b>${esc(location.origin)}</b> on another phone, then Share → Add to Home Screen.</div>
+      <div class="box small">Same wifi? Open <b>${esc(inviteUrl())}</b> on another phone, then Share → Add to Home Screen.</div>
       <div class="row"><button class="btn ghost" id="shareB"><svg class="ic"><use href="#i-link"/></svg>Share link</button>
       <a class="btn ghost" href="https://teamily.ai" target="_blank" rel="noopener">Open the Maple St group in Teamily</a></div>
       <h3><svg class="dd" aria-hidden="true"><use href="#d-chat"/></svg> The street's BAND room</h3>
@@ -524,7 +528,7 @@ TABS.neighbors = {
   mount() {
     this.live();
     $('#shareB').onclick = async () => {
-      const url = location.origin;
+      const url = inviteUrl();
       if (navigator.share) navigator.share({ title: 'Impact', text: 'Heal our planet with me', url }).catch(() => {});
       else { navigator.clipboard && navigator.clipboard.writeText(url); toast('Link copied'); }
     };
@@ -666,7 +670,7 @@ async function quizDone() {
   else if (W) { IA.join(W, me); receive(W); }
   modal(`<img class="big-av" src="${myFace(120)}" alt=""><h2>Thanks, ${esc(me.name)}!</h2>
     <p><b>Your footprint: about ${footprint(me.profile)} t CO₂/year</b> <span class="small muted">(very rough, from published averages)</span></p>
-    <p class="muted">The agents now know your habits. They'll ask you for real-world help that fits your life. Tap <b>Agents</b> to see every decision they make.</p>
+    <p class="muted">The agents now know your habits. They'll ask you for real-world help that fits your life. Tap <b>Story</b> to see every decision they make.</p>
     <button class="btn wide" data-close>See the planet</button>`);
 }
 function setMe() {
