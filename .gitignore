@@ -1,0 +1,7 @@
+node_modules
+.env
+data/impact.duckdb*
+data/state.json
+data/agent_memory.json
+logs/
+.DS_Store
