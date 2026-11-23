@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Impact · heal the planet together</title>
+<meta name="description" content="Five AI agents live on a shared 3D planet that runs on your real day. Co-op multiplayer game, Agents for Impact Hackathon, Track 02.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }</script>
+<style>
+:root {
+  --bg: #141a3d; --bg2: #2c2f6e; --card: #fdfbf3; --card2: #f4efdf; --line: #e4dcc3; --ink: #2b2a26; --mute: #77705f;
+  --sun: #f6c453; --leaf: #5fae67; --leaf-bg: #e3f2df; --pink: #ff8fb8; --lav: #a98bff; --sea: #3fb2ff;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; color: #fff; font: 700 17px/1.5 Nunito, system-ui, sans-serif; overflow-x: hidden;
+  background: radial-gradient(circle at 15% 10%, rgba(255,160,210,.20), transparent 38%), radial-gradient(circle at 85% 60%, rgba(120,220,255,.16), transparent 45%), linear-gradient(180deg, var(--bg2), var(--bg) 60%, #0c1030); background-attachment: fixed; }
+a { color: inherit; }
+h1, h2, h3 { font-family: Gaegu, cursive; font-weight: 700; line-height: 1.05; margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+nav { position: fixed; inset: 12px 12px auto; z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+nav .logo { font: 700 28px Gaegu, cursive; background: rgba(253,251,243,.95); color: var(--ink); padding: 2px 16px; border-radius: 999px; border: 2px solid var(--line); box-shadow: 0 4px 0 rgba(0,0,0,.15); text-decoration: none; }
+nav .links { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+nav .links a { text-decoration: none; background: rgba(253,251,243,.95); color: var(--ink); padding: 6px 12px; border-radius: 999px; border: 2px solid var(--line); font-size: 14px; box-shadow: 0 3px 0 rgba(0,0,0,.15); }
+@media (max-width: 640px) { nav .links a.hide-s { display: none; } }
+
+/* hero */
+.hero { position: relative; min-height: 100svh; display: grid; align-items: end; padding-bottom: 7vh; }
+#planet { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero::after { content: ''; position: absolute; inset: auto 0 0; height: 62%; background: linear-gradient(transparent, rgba(16,20,52,.82) 55%); pointer-events: none; z-index: 1; }
+.hero .copy { text-shadow: 0 2px 12px rgba(0,0,0,.45); }
+.hero .copy { position: relative; z-index: 2; text-align: center; pointer-events: none; }
+.hero h1 { font-size: clamp(64px, 14vw, 150px); letter-spacing: .02em; text-shadow: 0 6px 0 rgba(0,0,0,.25); }
+.hero p.tag { font-size: clamp(18px, 3vw, 24px); margin: 6px auto 18px; max-width: 640px; opacity: .95; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.chip { background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.3); border-radius: 999px; padding: 4px 12px; font-size: 14px; backdrop-filter: blur(6px); }
+.cta { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; pointer-events: auto; }
+.btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font: 900 17px Nunito, system-ui; padding: 12px 22px; border-radius: 18px; border: 0; cursor: pointer; color: var(--ink); background: var(--sun); box-shadow: 0 6px 0 #c99a2a; transition: transform .1s; }
+.btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #c99a2a; }
+.btn.alt { background: linear-gradient(135deg, var(--pink), var(--lav)); color: #fff; box-shadow: 0 6px 0 #7d5fd1; }
+.btn.ghost { background: var(--card); box-shadow: 0 6px 0 var(--line); }
+.scroll-hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 13px; opacity: .7; animation: bob 1.6s infinite; }
+@keyframes bob { 50% { transform: translate(-50%, -6px); } }
+
+section { padding: 80px 0; }
+.sec-h { text-align: center; margin-bottom: 30px; }
+.sec-h h2 { font-size: clamp(42px, 7vw, 68px); }
+.sec-h p { opacity: .85; max-width: 680px; margin: 8px auto 0; }
+
+/* 3D tilt cards */
+.grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); perspective: 900px; }
+.tilt { background: var(--card); color: var(--ink); border-radius: 26px; padding: 18px; border: 2px solid var(--line); box-shadow: 0 10px 0 rgba(0,0,0,.18), 0 24px 40px rgba(0,0,0,.25); transform-style: preserve-3d; transition: transform .15s ease-out; will-change: transform; }
+.tilt .pop { transform: translateZ(40px); }
+.agent img { width: 92px; height: 92px; display: block; margin: -48px auto 6px; filter: drop-shadow(0 8px 0 rgba(0,0,0,.15)); animation: float 3s ease-in-out infinite; }
+.agent:nth-child(2) img { animation-delay: -.6s; } .agent:nth-child(3) img { animation-delay: -1.2s; } .agent:nth-child(4) img { animation-delay: -1.8s; } .agent:nth-child(5) img { animation-delay: -2.4s; }
+@keyframes float { 50% { transform: translateY(-8px) rotate(-3deg); } }
+.agent { text-align: center; margin-top: 46px; }
+.agent h3 { font-size: 32px; }
+.agent .role { display: inline-block; font-size: 12px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; background: var(--leaf-bg); color: #2f7a3a; border-radius: 999px; padding: 2px 10px; margin: 4px 0 8px; }
+.agent.villain .role { background: #fbe4e1; color: #a33c3c; }
+.agent p { margin: 0; color: var(--mute); font-size: 15px; }
+
+/* loop */
+.loop { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; perspective: 900px; }
+.step .n { font: 700 54px Gaegu, cursive; color: var(--lav); line-height: 1; }
+.step h3 { font-size: 30px; }
+.step p { margin: 6px 0 0; color: var(--mute); font-size: 15px; }
+
+/* screenshot carousel: phones on a rotating 3D ring */
+.ring-stage { height: 560px; perspective: 1400px; display: grid; place-items: center; overflow: hidden; }
+.ring { position: relative; width: 210px; height: 455px; transform-style: preserve-3d; animation: spin 30s linear infinite; }
+.ring-stage:hover .ring { animation-play-state: paused; }
+.ring figure { position: absolute; inset: 0; margin: 0; border-radius: 28px; overflow: hidden; border: 6px solid #fdfbf3; box-shadow: 0 20px 40px rgba(0,0,0,.4); background: #fff; backface-visibility: hidden; }
+.ring figure img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.ring figcaption { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(253,251,243,.95); color: var(--ink); border-radius: 999px; padding: 2px 12px; font-size: 13px; white-space: nowrap; }
+@keyframes spin { to { transform: rotateY(-360deg); } }
+@media (max-width: 640px) { .ring-stage { height: 470px; } .ring { width: 170px; height: 368px; } }
+
+/* sponsors */
+.sp h3 { font-size: 28px; }
+.sp .ok { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 900; color: #2f7a3a; background: var(--leaf-bg); border-radius: 999px; padding: 2px 10px; margin: 2px 0 8px; }
+.sp .ok i { width: 8px; height: 8px; border-radius: 50%; background: #3fae5e; }
+.sp p { margin: 0; color: var(--mute); font-size: 15px; }
+
+/* slides: a 3D deck */
+.deck { position: relative; height: min(70vh, 600px); perspective: 1600px; }
+.deck.full { position: fixed; inset: 0; height: auto; z-index: 50; background: radial-gradient(ellipse at 50% 30%, var(--bg2), var(--bg)); padding: 4vh 4vw 12vh; }
+.slide { position: absolute; inset: 0; background: var(--card); color: var(--ink); border-radius: 32px; border: 3px solid var(--line); box-shadow: 0 14px 0 rgba(0,0,0,.2), 0 40px 80px rgba(0,0,0,.35); padding: clamp(22px, 5vw, 56px); display: flex; flex-direction: column; justify-content: center; overflow: hidden;
+  transition: transform .7s cubic-bezier(.2,.8,.2,1), opacity .7s; transform-origin: 50% 50% -400px; }
+.deck.full .slide { inset: 4vh 4vw 12vh; }
+.slide.prev { transform: rotateY(70deg) translateZ(-200px); opacity: 0; pointer-events: none; }
+.slide.next { transform: rotateY(-70deg) translateZ(-200px); opacity: 0; pointer-events: none; }
+.slide h2 { font-size: clamp(40px, 6.5vw, 80px); }
+.slide .kicker { font: 900 13px Nunito; letter-spacing: .12em; text-transform: uppercase; color: var(--lav); margin-bottom: 8px; }
+.slide p, .slide li { font-size: clamp(17px, 2.2vw, 24px); color: #4a463c; }
+.slide ul { padding-left: 1.1em; margin: 10px 0 0; }
+.slide li { margin: 6px 0; }
+.slide .faces { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.slide .faces img { width: clamp(54px, 9vw, 96px); animation: float 3s ease-in-out infinite; }
+.slide .big { font: 700 clamp(56px, 11vw, 140px) Gaegu, cursive; line-height: .95; background: linear-gradient(135deg, #3fae5e, #3fb2ff 50%, #a98bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.slide .deco { position: absolute; right: -40px; bottom: -40px; font-size: 220px; opacity: .08; transform: rotate(-12deg); pointer-events: none; }
+.slide .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+.slide .mini { background: var(--card2); border-radius: 18px; padding: 10px 14px; font-size: clamp(14px, 1.8vw, 18px); color: #4a463c; }
+.slide .mini b { display: block; font: 700 clamp(20px, 2.6vw, 28px) Gaegu, cursive; color: var(--ink); }
+.deck-ui { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 22px; }
+.deck.full + .deck-ui { position: fixed; bottom: 3vh; left: 0; right: 0; z-index: 51; margin: 0; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.35); cursor: pointer; }
+.dots i.on { background: var(--sun); width: 24px; border-radius: 999px; }
+.round { width: 48px; height: 48px; border-radius: 16px; border: 0; background: var(--card); color: var(--ink); font: 900 20px Nunito; cursor: pointer; box-shadow: 0 5px 0 var(--line); }
+
+/* video */
+.video { background: var(--card); color: var(--ink); border-radius: 28px; padding: 10px; border: 2px solid var(--line); box-shadow: 0 14px 0 rgba(0,0,0,.2); }
+.video .frame { aspect-ratio: 16/9; border-radius: 20px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #e3f2df, #ffe3f0, #e2e9ff); text-align: center; }
+.video iframe { width: 100%; height: 100%; border: 0; }
+.video .soon h3 { font-size: 40px; }
+.video .soon p { color: var(--mute); margin: 4px 0 0; }
+footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { *, .ring { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="#top">Impact</a>
+  <div class="links">
+    <a href="#agents" class="hide-s">Agents</a>
+    <a href="#games" class="hide-s">Games</a>
+    <a href="#slides">Slides</a>
+    <a href="#video">Video</a>
+    <a href="https://github.com/arushiSH5-cyber/impact" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <canvas id="planet" aria-label="A cute low-poly planet with five characters orbiting it"></canvas>
+  <div class="copy wrap">
+    <h1>Impact</h1>
+    <p class="tag">Five AI characters live on a shared planet that runs on your real day. They argue, they get bribed, and they need <i>you</i> to save them.</p>
+    <div class="chips"><span class="chip">🎮 Track 02 · Co-op games with agents</span><span class="chip">🤖 5 autonomous agents</span><span class="chip">📱 multiplayer on phones</span><span class="chip">🐻 Bruin-audited</span></div>
+    <div class="cta">
+      <a class="btn alt" href="#slides">▶ See the slides</a>
+      <a class="btn" href="#games">🎮 The games</a>
+      <a class="btn ghost" href="https://github.com/arushiSH5-cyber/impact" target="_blank" rel="noopener">Code on GitHub</a>
+    </div>
+  </div>
+  <span class="scroll-hint">scroll ↓</span>
+</header>
+
+<section id="agents">
+  <div class="wrap">
+    <div class="sec-h"><h2>Meet the cast</h2><p>Every 10 seconds each agent weighs its options (its goal, live air data, who it trusts, its personality) and acts. Nobody scripts the ending.</p></div>
+    <div class="grid" id="agentGrid"></div>
+  </div>
+</section>
+
+<section id="games">
+  <div class="wrap">
+    <div class="sec-h"><h2>Play with the agents</h2><p>Real life earns seeds. Seeds win showdowns. Games heal the planet for everyone on your street.</p></div>
+    <div class="loop">
+      <div class="tilt step"><div class="pop"><div class="n">🗑️</div><h3>Trash Dash</h3><p>Real-time arcade co-op: you and Ripplet (an AI teammate) catch falling litter while the Smog Baron bombs you. Combos, golden seeds, 45 seconds.</p></div></div>
+      <div class="tilt step"><div class="pop"><div class="n">🌱💧🔥</div><h3>Baron Duel</h3><p>Leaf · Wave · Fire with a guardian on your team. The Baron learns your favourite move; your teammate reads his pattern out loud.</p></div></div>
+      <div class="tilt step"><div class="pop"><div class="n">🎩</div><h3>Live showdowns</h3><p>The Baron bribes Sunfox in real time. Every phone gets the card. Outbid him with seeds before Sunfox decides, or shield the zone he's eyeing.</p></div></div>
+      <div class="tilt step"><div class="pop"><div class="n">🗺️</div><h3>Litter Hunt</h3><p>A real walk with GPS and photo proof. Heals the ocean, earns seeds, and puts you on the street leaderboard.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <div class="sec-h"><h2>On your phone</h2><p>Drag the planet, tap a character, jump into a showdown. Hover to pause.</p></div>
+    <div class="ring-stage"><div class="ring" id="ring"></div></div>
+  </div>
+</section>
+
+<section id="slides">
+  <div class="wrap">
+    <div class="sec-h"><h2>Slides</h2><p>Use ← → or swipe. Press F (or the ⛶ button) for full screen.</p></div>
+    <div class="deck" id="deck"></div>
+    <div class="deck-ui"><button class="round" id="prevB" aria-label="Previous slide">←</button><div class="dots" id="dots"></div><button class="round" id="nextB" aria-label="Next slide">→</button><button class="round" id="fullB" aria-label="Full screen">⛶</button></div>
+  </div>
+</section>
+
+<section id="powered">
+  <div class="wrap">
+    <div class="sec-h"><h2>Powered live by</h2><p>Each one is a real call in the running game. The app shows a sponsor as live only after its call worked.</p></div>
+    <div class="grid" id="spGrid"></div>
+  </div>
+</section>
+
+<section id="video">
+  <div class="wrap">
+    <div class="sec-h"><h2>Demo video</h2></div>
+    <div class="video"><div class="frame" id="videoFrame"><div class="soon"><h3>Coming soon 🎬</h3><p>The two-minute demo lands here.</p></div></div></div>
+  </div>
+</section>
+
+<footer>Impact · Agents for Impact Hackathon · Nov 23, 2026 · Track 02</footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { faceURL, drawFace } from './faces.js';
+
+// Paste the YouTube or Loom embed link here when the video is ready (e.g. https://www.youtube.com/embed/XXXX).
+const VIDEO_URL = '';
+
+const AGENTS = [
+  { id: 'mossling', name: 'Mossling', role: 'Gardener', color: '#5fbf6a', bio: 'Wants the forest back above 70. Plants trees, makes allies, asks you to help clean up parks.' },
+  { id: 'ripplet', name: 'Ripplet', role: 'Cleaner', color: '#4aa8e0', bio: 'Guards the ocean. Your Trash Dash teammate. Cheers your name when you bin litter.' },
+  { id: 'frostbun', name: 'Frostbun', role: 'Keeper', color: '#bfe6ff', bio: 'Protects the ice. Notices when you drive a lot and asks you to walk one trip.' },
+  { id: 'sunfox', name: 'Sunfox', role: 'Trader', color: '#f2a03d', bio: 'Loyal to whoever pays. The Baron keeps trying to bribe him. Outbid him and he stays good.' },
+  { id: 'baron', name: 'Smog Baron', role: 'Villain', color: '#7a6f86', bio: 'Wants the planet grey. Targets zones nobody is watching. Learns your moves in the Duel.' },
+];
+const VOICE = { mossling: 'Pixie', ripplet: 'Sarah', frostbun: 'Olivia', sunfox: 'Timothy', baron: 'Hades' };
+
+// ---------------- cast cards
+document.getElementById('agentGrid').innerHTML = AGENTS.map((a) => `<div class="tilt agent ${a.id === 'baron' ? 'villain' : ''}"><div class="pop"><img src="${faceURL(a, 160)}" alt=""><h3>${a.name}</h3><span class="role">${a.role} · voice: ${VOICE[a.id]}</span><p>${a.bio}</p></div></div>`).join('');
+
+// ---------------- sponsors
+const SP = [
+  ['Bruin', 'Main tool', 'A 9-asset pipeline with 33 checks: live LA air quality becomes daily_spawn (every agent reads it each tick), footprints are recomputed from cited factors, and every agent decision is audited.'],
+  ['BAND', 'Agents ⇄ humans', 'The agents post alliances, bribes and betrayals to a real BAND room. Type @Impact World rally ocean there and the ocean heals on every phone.'],
+  ['Telem', 'Live news', 'Today\'s real headlines per zone change decisions. Alarming news raises a guardian\'s urgency and draws the Baron there. Every move cites its article.'],
+  ['Runware', 'Voices + postcards', 'Each character speaks with its own Runware text-to-speech voice, and every run ends with a storybook postcard of the final planet.'],
+  ['Gemini', 'Receipt reader', 'Reads utility bills and receipts. Extraction only: the carbon math uses cited EPA factors, never a made-up number.'],
+  ['Teamily', 'Event chat', 'Our street group lives in Teamily, the event\'s official chat.'],
+];
+document.getElementById('spGrid').innerHTML = SP.map(([n, r, d]) => `<div class="tilt sp"><div class="pop"><h3>${n}</h3><span class="ok"><i></i>${r}</span><p>${d}</p></div></div>`).join('');
+
+// ---------------- 3D tilt on hover / touch
+const tilt = (el) => {
+  el.addEventListener('pointermove', (e) => { const r = el.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; el.style.transform = `rotateY(${x * 18}deg) rotateX(${-y * 18}deg) translateZ(10px)`; });
+  el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+};
+document.querySelectorAll('.tilt').forEach(tilt);
+
+// ---------------- screenshot ring
+const SHOTS = [['planet.jpg', 'The shared planet'], ['duel.jpg', 'Baron Duel'], ['today.jpg', 'Today'], ['story.jpg', 'The story'], ['street.jpg', 'Your street']];
+const ring = document.getElementById('ring');
+const R = innerWidth < 640 ? 260 : 340;
+ring.innerHTML = SHOTS.map(([f, c], i) => `<figure style="transform: rotateY(${(i * 360) / SHOTS.length}deg) translateZ(${R}px)"><img src="screenshots/${f}" alt="${c}" loading="lazy"><figcaption>${c}</figcaption></figure>`).join('');
+
+// ---------------- video
+const vf = document.getElementById('videoFrame');
+if (VIDEO_URL) vf.innerHTML = `<iframe src="${VIDEO_URL}" title="Impact demo video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+
+// ---------------- slides
+const face = (id, s = 96) => faceURL(AGENTS.find((a) => a.id === id), s);
+const SLIDES = [
+  `<div class="kicker">Track 02 · Co-op games with agents</div><div class="big">Impact</div><p>Heal the planet together. Five AI characters, one shared world, your real day.</p><div class="faces">${AGENTS.map((a) => `<img src="${face(a.id)}" alt="${a.name}">`).join('')}</div>`,
+  `<div class="kicker">The problem</div><h2>Climate apps are spreadsheets.</h2><ul><li>People quit them in a week.</li><li>Games keep people for years, but don't change anything in real life.</li><li>And most "AI" is still one chatbot answering one person.</li></ul><span class="deco">📉</span>`,
+  `<div class="kicker">The idea</div><h2>A planet that runs on your real day</h2><p>Five agents with their own goals live on it and act every 10 seconds, even when nobody is playing. You and your friends join from your phones. What you really do (walk instead of drive, bin litter, refuse plastic) earns seeds, and seeds are how you fight back.</p><span class="deco">🌍</span>`,
+  `<div class="kicker">The cast</div><h2>Agents with minds of their own</h2><div class="cols">${AGENTS.map((a) => `<div class="mini"><img src="${face(a.id, 64)}" alt="" style="width:44px;float:right">${'<b>' + a.name + '</b>'}${a.bio}</div>`).join('')}</div>`,
+  `<div class="kicker">Many agents ⇄ each other ⇄ humans</div><h2>Nobody scripts the drama</h2><ul><li>Guardians <b>ally</b>, trade energy, and hold a <b>council</b> that renegotiates the street's daily budget.</li><li>The Baron <b>bribes</b> Sunfox live. Every phone gets the showdown. Outbid him, or watch Sunfox betray everyone.</li><li>Run it twice with different seeds and you get a different story.</li></ul><span class="deco">🎩</span>`,
+  `<div class="kicker">The games</div><h2>Play with your AI teammates</h2><div class="cols"><div class="mini"><b>🗑️ Trash Dash</b>Arcade co-op with Ripplet. Dodge smog bombs.</div><div class="mini"><b>🌱 Baron Duel</b>Leaf · Wave · Fire. He learns your moves; your teammate reads his.</div><div class="mini"><b>⚡ Showdowns</b>Outbid bribes, shield zones, live on every phone.</div><div class="mini"><b>🗺️ Litter Hunt</b>A real GPS walk with photo proof. Earns seeds.</div></div>`,
+  `<div class="kicker">Real data, real sponsors</div><h2>Every move has a source</h2><div class="cols"><div class="mini"><b>🐻 Bruin</b>Live air quality → agent decisions. 33 checks. Audits every agent.</div><div class="mini"><b>📰 Telem</b>Today's real news per zone moves the agents.</div><div class="mini"><b>💬 BAND</b>Agents post to a real room; rally the ocean from chat.</div><div class="mini"><b>🎙️ Runware</b>A real voice for every character + storybook postcards.</div></div>`,
+  `<div class="kicker">Why you can trust it</div><h2>The AI never makes up a number</h2><ul><li>Gemini only <i>reads</i> a bill. The carbon math uses cited EPA factors.</li><li>Bruin re-checks the app's math and audits every agent decision.</li><li>A sponsor only shows as live after a real call works.</li></ul><span class="deco">✅</span>`,
+  `<div class="kicker">That's Impact</div><div class="big">Agents that get real people to change real habits, together.</div><div class="faces">${AGENTS.map((a) => `<img src="${face(a.id)}" alt="${a.name}">`).join('')}</div>`,
+];
+const deck = document.getElementById('deck'), dots = document.getElementById('dots');
+deck.innerHTML = SLIDES.map((h, i) => `<article class="slide" aria-roledescription="slide" aria-label="${i + 1} of ${SLIDES.length}">${h}</article>`).join('');
+dots.innerHTML = SLIDES.map((_, i) => `<i data-i="${i}"></i>`).join('');
+let cur = 0;
+function go(n) {
+  cur = Math.max(0, Math.min(SLIDES.length - 1, n));
+  deck.querySelectorAll('.slide').forEach((s, i) => { s.classList.toggle('prev', i < cur); s.classList.toggle('next', i > cur); });
+  dots.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i === cur));
+}
+go(0);
+document.getElementById('prevB').onclick = () => go(cur - 1);
+document.getElementById('nextB').onclick = () => go(cur + 1);
+dots.onclick = (e) => { if (e.target.dataset.i) go(+e.target.dataset.i); };
+const full = () => { deck.classList.toggle('full'); document.body.style.overflow = deck.classList.contains('full') ? 'hidden' : ''; };
+document.getElementById('fullB').onclick = full;
+addEventListener('keydown', (e) => {
+  const inView = deck.classList.contains('full') || Math.abs(deck.getBoundingClientRect().top) < innerHeight * 0.6;
+  if (!inView) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+  if (e.key === 'ArrowLeft') go(cur - 1);
+  if (e.key === 'f' || e.key === 'F') full();
+  if (e.key === 'Escape' && deck.classList.contains('full')) full();
+});
+let sx = null;
+deck.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
+deck.addEventListener('touchend', (e) => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) go(cur + (dx < 0 ? 1 : -1)); sx = null; });
+
+// ---------------- hero: a cute low-poly planet with the cast orbiting
+const cv = document.getElementById('planet');
+const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+cam.position.set(0, 0.4, 6);
+scene.add(new THREE.HemisphereLight(0xfff4e0, 0x334477, 1.25));
+const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(3, 4, 5); scene.add(sun);
+const rim = new THREE.DirectionalLight(0xffa8d8, 0.9); rim.position.set(-4, 1, -3); scene.add(rim);
+const world = new THREE.Group(); scene.add(world);
+// glow
+{ const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'); const g = x.createRadialGradient(128, 128, 60, 128, 128, 128); g.addColorStop(0, 'rgba(170,215,255,.55)'); g.addColorStop(.55, 'rgba(200,170,255,.2)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false, transparent: true })); s.scale.set(4.4, 4.4, 1); s.position.z = -0.5; scene.add(s); }
+// planet: zones by direction
+const DIRS = { forest: new THREE.Vector3(.75, .25, .6).normalize(), ice: new THREE.Vector3(0, 1, 0), desert: new THREE.Vector3(-.8, .05, .55).normalize(), ocean: new THREE.Vector3(.1, -.55, .85).normalize() };
+const COL = { forest: '#62d98a', ice: '#f3fbff', desert: '#ffd894', ocean: '#3fb2ff', coast: '#8ee3ff' };
+const geo = new THREE.IcosahedronGeometry(1.3, 5).toNonIndexed();
+const pos = geo.attributes.position, cols = new Float32Array(pos.count * 3), tmp = new THREE.Vector3(), c = new THREE.Color();
+for (let f = 0; f < pos.count / 3; f++) {
+  tmp.set(0, 0, 0); for (let k = 0; k < 3; k++) tmp.add(new THREE.Vector3().fromBufferAttribute(pos, f * 3 + k)); tmp.normalize();
+  const n = Math.sin(tmp.x * 9.1) * Math.cos(tmp.y * 7.3) * Math.sin(tmp.z * 8.7) * .18;
+  let best = 'ocean', bd = -9, sd = -9;
+  for (const z of Object.keys(DIRS)) { const bias = z === 'ocean' ? .16 : z === 'ice' ? (tmp.y > .72 ? .5 : -.2) : z === 'desert' ? -.1 : .04; const d = tmp.dot(DIRS[z]) + bias + (z !== 'ocean' ? n : 0); if (d > bd) { sd = bd; bd = d; best = z; } else if (d > sd) sd = d; }
+  if (tmp.y < -.85) best = 'ice';
+  const coast = best === 'ocean' && bd - sd < .09;
+  c.set(coast ? COL.coast : COL[best]).multiplyScalar(.95 + Math.random() * .1);
+  if (best !== 'ocean') { const lift = best === 'ice' ? 1.03 + Math.abs(n) * .18 : 1.02 + Math.abs(n) * .05; for (let k = 0; k < 3; k++) { const v = new THREE.Vector3().fromBufferAttribute(pos, f * 3 + k).multiplyScalar(lift); pos.setXYZ(f * 3 + k, v.x, v.y, v.z); } }
+  for (let k = 0; k < 3; k++) cols.set([c.r, c.g, c.b], (f * 3 + k) * 3);
+}
+geo.setAttribute('color', new THREE.BufferAttribute(cols, 3)); geo.computeVertexNormals();
+world.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .75 })));
+// trees + flowers
+const tm = new THREE.MeshToonMaterial({ color: 0x3fae5e }), tm2 = new THREE.MeshToonMaterial({ color: 0x7fd36a }), trunk = new THREE.MeshToonMaterial({ color: 0x7a5236 });
+const place = (obj, dir, r) => { obj.position.copy(dir.clone().multiplyScalar(r)); obj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir); world.add(obj); };
+for (let i = 0; i < 46; i++) { const d = DIRS.forest.clone().add(new THREE.Vector3((Math.random() - .5) * .9, (Math.random() - .5) * .7, (Math.random() - .5) * .9)).normalize(); const t = new THREE.Group(); const top = i % 3 ? new THREE.Mesh(new THREE.ConeGeometry(.045, .12, 6), i % 2 ? tm : tm2) : new THREE.Mesh(new THREE.IcosahedronGeometry(.055, 1), tm2); top.position.y = .09; const tr = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, .05, 5), trunk); tr.position.y = .025; t.add(top, tr); place(t, d, 1.32); }
+const fc = [0xff8fb8, 0xffe066, 0xc9a0ff, 0xffffff, 0xff9f6b];
+for (let i = 0; i < 30; i++) { const d = DIRS.forest.clone().add(new THREE.Vector3((Math.random() - .5), (Math.random() - .5) * .8, (Math.random() - .5))).normalize(); place(new THREE.Mesh(new THREE.IcosahedronGeometry(.018, 0), new THREE.MeshToonMaterial({ color: fc[i % 5] })), d, 1.335); }
+const cm = new THREE.MeshToonMaterial({ color: 0x5fbf6e });
+for (let i = 0; i < 12; i++) { const d = DIRS.desert.clone().add(new THREE.Vector3((Math.random() - .5) * .8, (Math.random() - .5) * .6, (Math.random() - .5) * .8)).normalize(); const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.CapsuleGeometry(.016, .05, 3, 6), cm); b.position.y = .04; const a = new THREE.Mesh(new THREE.CapsuleGeometry(.009, .024, 3, 6), cm); a.position.set(.02, .045, 0); g.add(b, a); place(g, d, 1.325); }
+// clouds
+const clouds = new THREE.Group(), cmat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 1 });
+for (let i = 0; i < 10; i++) { const g = new THREE.Group(); for (let j = 0; j < 3; j++) { const p = new THREE.Mesh(new THREE.IcosahedronGeometry(.07 + Math.random() * .04, 0), cmat); p.position.set((j - 1) * .08, Math.random() * .03, 0); g.add(p); } g.position.copy(new THREE.Vector3().randomDirection().multiplyScalar(1.6)); g.lookAt(0, 0, 0); clouds.add(g); }
+world.add(clouds);
+// stars
+{ const sg = new THREE.BufferGeometry(), sp = []; for (let i = 0; i < 600; i++) { const v = new THREE.Vector3().randomDirection().multiplyScalar(18 + Math.random() * 20); sp.push(v.x, v.y, v.z); } sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: .07 }))); }
+// the cast orbiting
+const orbiters = AGENTS.map((a, i) => {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(.17, 20, 14), new THREE.MeshToonMaterial({ color: a.color })); body.scale.y = .9;
+  const tex = new THREE.CanvasTexture(drawFace(a, 160)); tex.colorSpace = THREE.SRGBColorSpace;
+  const fs = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); fs.scale.set(.38, .38, 1); fs.position.z = .03;
+  g.add(body, fs); scene.add(g);
+  return { g, a: (i / AGENTS.length) * Math.PI * 2, r: a.id === 'baron' ? 2.25 : 1.85, y: (i % 2 ? .35 : -.25), sp: a.id === 'baron' ? -.25 : .32 };
+});
+let mx = 0, my = 0, drag = false, lx = 0, vy = .002;
+addEventListener('pointermove', (e) => { mx = e.clientX / innerWidth - .5; my = e.clientY / innerHeight - .5; if (drag) { vy = (e.clientX - lx) * .004; world.rotation.y += vy; lx = e.clientX; } });
+cv.addEventListener('pointerdown', (e) => { drag = true; lx = e.clientX; }); addEventListener('pointerup', () => { drag = false; });
+function size() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.position.z = w < h ? 8.2 : 6; cam.position.y = w < h ? .9 : .4; cam.updateProjectionMatrix(); }
+addEventListener('resize', size); size();
+const clock = new THREE.Clock();
+let heroVisible = true;
+new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(cv);
+(function frame() {
+  requestAnimationFrame(frame);
+  if (!heroVisible) return;
+  const t = clock.getElapsedTime();
+  if (!drag) { world.rotation.y += vy; vy += (.002 - vy) * .02; }
+  world.rotation.x += ((.25 + my * .3) - world.rotation.x) * .05;
+  clouds.rotation.y += .0008;
+  for (const o of orbiters) { const a = o.a + t * o.sp; o.g.position.set(Math.cos(a) * o.r, o.y + Math.sin(t * 2 + o.a) * .08, Math.sin(a) * o.r); }
+  scene.rotation.y = mx * .25;
+  renderer.render(scene, cam);
+})();
+</script>
+</body>
+</html>

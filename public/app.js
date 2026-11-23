@@ -259,6 +259,7 @@ $('#sheetX').onclick = () => openSheet(null);
 document.querySelectorAll('#tabbar button').forEach((b) => (b.onclick = () => (b.dataset.tab === 'log' ? composer() : openSheet(b.dataset.tab === 'globe' ? null : b.dataset.tab))));
 $('#agentsBtn').onclick = () => openSheet('agents');
 $('#gamesBtn').onclick = () => openSheet('games');
+$('#playFab').onclick = () => openSheet('games');
 $('#meBtn').onclick = () => openSheet('me');
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else openSheet(null); } });
 
@@ -592,6 +593,7 @@ TABS.games = {
     const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
     const card = (id, face, title, sub, tag) => `<button class="gcard" id="${id}"><img src="${faceURL(face, 96)}" alt=""><span><b>${title}</b><small>${sub}</small></span><em>${tag}</em></button>`;
     return `<p class="small">Play with the agents. Games heal the planet a little; real-life games heal it a lot and earn seeds.</p>
+      ${card('gDash', IA.AG.ripplet, 'Trash Dash', 'Catch falling litter with Ripplet, dodge the Baron\'s smog bombs. Combos, golden seeds, 45 seconds.', 'arcade · co-op')}
       ${card('gDuel', IA.AG.baron, 'Baron Duel', `Leaf · Wave · Fire vs the Smog Baron, with ${mate.name} on your team. He learns your moves.`, 'co-op · AI teammate')}
       ${card('gPop', IA.AG.ripplet, 'Smog Pop', `Pop the Baron's smog blob over the ${ZN[W.raid.zone]} in 20 seconds.`, 'arcade')}
       ${card('gHunt', IA.AG.ripplet, 'Litter Hunt', 'Walk 150 m, bin litter, snap proof. Heals the ocean and earns seeds.', 'real life · seeds')}
@@ -600,6 +602,7 @@ TABS.games = {
   },
   mount() {
     $('#gDuel').onclick = () => openSheet('duel');
+    $('#gDash').onclick = () => openSheet('dash');
     $('#gPop').onclick = () => openSheet('play');
     $('#gHunt').onclick = litterHunt;
     $('#gMission').onclick = async () => {
@@ -610,6 +613,115 @@ TABS.games = {
     };
   },
 };
+
+// ------------------------------------------------------------------ Trash Dash: real-time co-op arcade game
+// You and an AI teammate (Ripplet) catch falling litter. The Smog Baron flies overhead dropping smog bombs.
+// Ripplet is an agent: it chases the most valuable item on its half and calls out combos.
+TABS.dash = {
+  title: 'Trash Dash',
+  html() {
+    let best = 0; try { best = +localStorage.getItem('impact.dashBest') || 0; } catch (e) { /* ignore */ }
+    return `<div class="dash" id="dash"><canvas id="dashC"></canvas>
+      <div class="dash-hud"><span id="dScore">0</span><span id="dHearts">❤️❤️❤️</span><span id="dTime">45s</span></div>
+      <div class="dash-start" id="dStart"><img src="${faceURL(IA.AG.ripplet, 96)}" alt=""><h2>Trash Dash</h2>
+        <p>Drag to move. Catch litter 🥤🥫🛍️ with Ripplet. Golden seeds 🌟 are worth 5. Dodge the Baron's smog bombs 💣.</p>
+        <button class="btn big" id="dGo">Play</button><p class="small muted">Best: ${best}</p></div></div>`;
+  },
+  mount() { $('#dGo').onclick = dashRun; },
+};
+function dashRun() {
+  const wrap = $('#dash'), cv = $('#dashC'), ctx = cv.getContext('2d');
+  $('#dStart').hidden = true;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const W2 = wrap.clientWidth, H2 = wrap.clientHeight;
+  cv.width = W2 * dpr; cv.height = H2 * dpr; cv.style.width = W2 + 'px'; cv.style.height = H2 + 'px';
+  ctx.scale(dpr, dpr);
+  const img = (d) => { const i = new Image(); i.src = faceURL(d, 96); return i; };
+  const meImg = new Image(); meImg.src = myFace(96);
+  const rip = img(IA.AG.ripplet), bar = img(IA.AG.baron);
+  const LITTER = ['🥤', '🥫', '🛍️', '🧴', '📦', '🍾'];
+  const P = { x: W2 * 0.3, w: 70 }, A = { x: W2 * 0.7, w: 70, say: '', sayT: 0 };
+  const baron = { x: W2 / 2, dir: 1 };
+  let items = [], parts = [], score = 0, hearts = 3, combo = 0, left = 45, t0 = performance.now(), last = t0, spawnT = 0, bombT = 0, over = false, mateCatches = 0;
+  const say = (s) => { A.say = s; A.sayT = performance.now() + 1600; };
+  const move = (e) => { const r = cv.getBoundingClientRect(); P.x = Math.max(P.w / 2, Math.min(W2 - P.w / 2, (e.touches ? e.touches[0].clientX : e.clientX) - r.left)); };
+  cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move);
+  cv.addEventListener('touchmove', (e) => { e.preventDefault(); move(e); }, { passive: false });
+  speak('ripplet', "Let's go! I'll take the right side!");
+  const burst = (x, y, col) => { for (let i = 0; i < 10; i++) parts.push({ x, y, vx: (Math.random() - 0.5) * 4, vy: -Math.random() * 4, life: 1, col }); };
+  const catcher = (c, it) => Math.abs(it.x - c.x) < c.w / 2 + 14 && it.y > H2 - 92 && it.y < H2 - 40;
+  function frame(now) {
+    if (over) return;
+    const dt = Math.min(0.08, (now - last) / 1000); last = now;
+    left = Math.max(0, 45 - (now - t0) / 1000);
+    const speed = 1 + (45 - left) / 30; // it gets faster
+    // spawn
+    spawnT -= dt; bombT -= dt;
+    if (spawnT <= 0) { spawnT = 0.55 / speed; const gold = Math.random() < 0.08; items.push({ x: 20 + Math.random() * (W2 - 40), y: -20, v: (90 + Math.random() * 60) * speed, e: gold ? '🌟' : LITTER[Math.floor(Math.random() * LITTER.length)], k: gold ? 'gold' : 'trash' }); }
+    if (bombT <= 0) { bombT = 1.6 / speed; items.push({ x: baron.x, y: 50, v: 140 * speed, e: '💣', k: 'bomb' }); }
+    baron.x += baron.dir * 120 * speed * dt; if (baron.x < 40 || baron.x > W2 - 40) baron.dir *= -1;
+    // AI teammate: chase the best reachable item on the right half, never a bomb
+    const mine = items.filter((it) => it.k !== 'bomb' && it.x > W2 * 0.45 && it.y < H2 - 60).sort((a, b) => (b.k === 'gold') - (a.k === 'gold') || b.y - a.y)[0];
+    const bomb = items.find((it) => it.k === 'bomb' && Math.abs(it.x - A.x) < 50 && it.y > H2 - 200);
+    let target = mine ? mine.x : W2 * 0.72;
+    if (bomb) target = A.x + (A.x > bomb.x ? 80 : -80);
+    A.x += Math.max(-260 * dt, Math.min(260 * dt, target - A.x)); A.x = Math.max(W2 * 0.4, Math.min(W2 - A.w / 2, A.x));
+    // physics + catches
+    for (const it of items) {
+      it.y += it.v * dt;
+      for (const [c, who] of [[P, 'me'], [A, 'mate']]) {
+        if (it.dead || !catcher(c, it)) continue;
+        it.dead = true;
+        if (it.k === 'bomb') {
+          if (who === 'me') { hearts--; combo = 0; burst(it.x, it.y, '#6d5f86'); if (navigator.vibrate) navigator.vibrate(120); globe.say('baron', 'Gotcha!'); }
+          else { say('Ow! Smog!'); burst(it.x, it.y, '#6d5f86'); score = Math.max(0, score - 3); }
+        } else {
+          const pts = it.k === 'gold' ? 5 : 1;
+          if (who === 'me') { combo++; score += pts * (combo >= 10 ? 3 : combo >= 5 ? 2 : 1); if (combo === 5) say('Combo x2! 🔥'); if (combo === 10) { say('x3!! Unstoppable!'); speak('ripplet', 'Triple combo! You are amazing!'); } }
+          else { score += pts; mateCatches++; if (mateCatches % 6 === 0) say(['Got it!', 'Teamwork!', 'Ocean says thanks!'][mateCatches % 3]); }
+          burst(it.x, it.y, it.k === 'gold' ? '#ffd34d' : '#7fd36a');
+        }
+      }
+      if (!it.dead && it.y > H2 + 20) { it.dead = true; if (it.k !== 'bomb') combo = 0; }
+    }
+    items = items.filter((i) => !i.dead);
+    // draw: sea-to-sky background
+    const g = ctx.createLinearGradient(0, 0, 0, H2); g.addColorStop(0, '#2c2f6e'); g.addColorStop(0.6, '#5a8fd8'); g.addColorStop(1, '#8ee3ff');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W2, H2);
+    ctx.fillStyle = '#3fb2ff'; ctx.beginPath(); ctx.moveTo(0, H2 - 34);
+    for (let x = 0; x <= W2; x += 20) ctx.lineTo(x, H2 - 34 + Math.sin(x / 30 + now / 300) * 5);
+    ctx.lineTo(W2, H2); ctx.lineTo(0, H2); ctx.fill();
+    ctx.drawImage(bar, baron.x - 28, 6, 56, 56);
+    ctx.font = '30px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const it of items) ctx.fillText(it.e, it.x, it.y);
+    for (const [c, im] of [[P, meImg], [A, rip]]) {
+      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.strokeStyle = '#2b2a26'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(c.x - c.w / 2, H2 - 64, c.w, 26, 12); ctx.fill(); ctx.stroke();
+      ctx.drawImage(im, c.x - 24, H2 - 112, 48, 48);
+    }
+    if (performance.now() < A.sayT) { ctx.font = '700 14px Nunito, system-ui'; const w = ctx.measureText(A.say).width + 18; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(A.x - w / 2, H2 - 150, w, 28, 12); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#2b2a26'; ctx.fillText(A.say, A.x, H2 - 136); }
+    for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= dt * 1.8; ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1; parts = parts.filter((p) => p.life > 0);
+    $('#dScore').textContent = `${score}${combo >= 5 ? ` · x${combo >= 10 ? 3 : 2}` : ''}`;
+    $('#dHearts').textContent = '❤️'.repeat(Math.max(0, hearts)) + '🖤'.repeat(3 - Math.max(0, hearts));
+    $('#dTime').textContent = Math.ceil(left) + 's';
+    if (left <= 0 || hearts <= 0) return dashEnd(score, hearts > 0);
+    requestAnimationFrame(frame);
+  }
+  async function dashEnd(sc, survived) {
+    over = true;
+    let best = 0; try { best = +localStorage.getItem('impact.dashBest') || 0; if (sc > best) localStorage.setItem('impact.dashBest', sc); } catch (e) { /* ignore */ }
+    const heal = Math.min(4, Math.round(sc / 12));
+    if (heal > 0 && mode === 'online') await api('api/act', { id: me.id, act: { label: `scored ${sc} in Trash Dash with Ripplet`, deltas: { ocean: heal }, raid: sc * 5, real: false } });
+    if (sc >= 20) confetti();
+    speak('ripplet', sc >= 20 ? `Wow, ${sc} points! The ocean is sparkling!` : 'Good try! Again?');
+    const st = $('#dStart'); st.hidden = false;
+    st.innerHTML = `<img src="${faceURL(IA.AG.ripplet, 96)}" alt=""><h2>${survived ? 'Time!' : 'Smogged!'} ${sc} points</h2>
+      <p>${sc > best ? '🏆 New best! ' : ''}Ocean +${heal} for everyone on the street.</p><button class="btn big" id="dGo">Play again</button>`;
+    $('#dGo').onclick = () => renderSheet(false);
+  }
+  requestAnimationFrame(frame);
+}
 
 // ------------------------------------------------------------------ Baron Duel: co-op Leaf/Wave/Fire with an AI teammate
 // Leaf drinks Wave, Wave puts out Fire, Fire burns Leaf. The Baron is an agent that learns: he counters the move you

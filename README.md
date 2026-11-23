@@ -1,18 +1,57 @@
-# Impact: heal the planet together
+<div align="center">
 
-**Track 02 · Co-op Multiplayer Game · Agents for Impact Hackathon (Nov 23, 2026)**
+# 🌍 Impact
 
-Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it and act every 10 seconds, even when nobody is playing. **Two or more humans** join from their phones and share the same world. The agents' choices are driven by **live air-quality data from a Bruin pipeline** and by the humans' **real carbon ledger**: how you actually traveled, showered and what you threw away today, logged by tapping or by scanning a receipt, and computed only from cited emission factors. An **agent council** renegotiates the street's daily budget every few minutes. Every decision is logged with *why*, *the data it used* and *its source*, and Bruin recomputes everyone's footprint and audits the agents afterwards.
+### Heal the planet together
 
-```
- Your real log (tap or receipt scan) ─► server: cited factors ─► logs/ledger.jsonl ─► Bruin footprint_daily (recomputes + checks the math)
- Open-Meteo (live PM2.5, temp, humidity) ─► Bruin pipeline ─► data/daily_spawn.csv ─┐
-                                              (21 quality checks)                   ▼
- Humans on 2+ phones ── real actions, photo proof, Smog Pop ──► server.js tick loop (every 10 s)
-          ▲                                                       │  Mossling · Ripplet · Frostbun · Sunfox · Smog Baron
-          └──────────── SSE: everyone sees the same world ◄───────┤  ally / trade / betray / pollute / quests for humans
-                                                                  ▼
-                       logs/decisions.jsonl ─► Bruin marts.agent_report (audit) ─► in-app "Run report"
+**Five AI characters live on a shared 3D planet that runs on your real day.<br>They argue, they get bribed, and they need *you* to save them.**
+
+[**🌐 Website + 3D slides**](https://arushish5-cyber.github.io/impact/) · [**🎞️ Slides**](https://arushish5-cyber.github.io/impact/#slides) · [**🎬 Demo video**](https://arushish5-cyber.github.io/impact/#video) · [**▶ Run it**](#run-it)
+
+![Track 02](https://img.shields.io/badge/Track_02-Co--op_games_with_agents-a98bff?style=for-the-badge)
+![Agents](https://img.shields.io/badge/agents-5_autonomous-62d98a?style=for-the-badge)
+![Bruin](https://img.shields.io/badge/Bruin-33_checks-3fb2ff?style=for-the-badge)
+![Zero deps](https://img.shields.io/badge/server-zero_dependencies-f6c453?style=for-the-badge)
+
+<img src="docs/screenshots/planet.jpg" width="230" alt="The shared planet with the five agents"> <img src="docs/screenshots/duel.jpg" width="230" alt="Baron Duel with an AI teammate"> <img src="docs/screenshots/story.jpg" width="230" alt="Every agent decision with its reason">
+
+*Agents for Impact Hackathon · Nov 23, 2026 · AWS Loft*
+
+</div>
+
+---
+
+## 🎯 Judge it in 60 seconds
+
+1. **Open the app** and pick a buddy. Five characters are already walking the planet and acting every 10 seconds.
+2. **Tap 🎮 GAMES**: play **Trash Dash** with Ripplet (an AI teammate) or the **Baron Duel** (the Baron learns your moves; your teammate reads his pattern out loud).
+3. **Wait for a showdown**: the Smog Baron bribes Sunfox live. Outbid him with seeds before Sunfox decides, on every phone at once.
+4. **Turn on 🔊**: every character talks with its own Runware voice.
+5. **Story → Every decision**: each move shows *why*, *the data it used* and *its source* (Bruin air data, Telem news).
+
+## 🧠 What it is
+
+Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it and act every 10 seconds, even when nobody is playing. **Two or more humans** join from their phones and share the same world. The agents' choices are driven by **live air-quality data from a Bruin pipeline**, **today's real news from Telem**, and the humans' **real actions**: walking instead of driving, binning litter, refusing plastic. An **agent council** renegotiates the street's daily budget every few minutes. Every decision is logged with *why*, *the data it used* and *its source*, and Bruin audits the agents afterwards.
+
+| | Agent | Wants | Voice (Runware) |
+|---|---|---|---|
+| 🌱 | **Mossling** | the forest back above 70; plants trees, makes allies | Pixie |
+| 💧 | **Ripplet** | a clean ocean; your Trash Dash teammate | Sarah |
+| ❄️ | **Frostbun** | the ice safe; asks you to walk one trip | Olivia |
+| 🦊 | **Sunfox** | seeds, from whoever pays most (the Baron keeps trying) | Timothy |
+| 🎩 | **Smog Baron** | the planet below 30; targets zones nobody watches | Hades |
+
+```mermaid
+flowchart LR
+  A[Open-Meteo live air] --> B[Bruin pipeline<br/>33 checks]
+  N[Telem live news] --> T
+  B --> T[server.js tick loop<br/>every 10 s]
+  H[Humans on 2+ phones<br/>games · walks · litter] --> T
+  T -->|ally · trade · bribe · betray · quests| T
+  T -->|SSE: one shared world| H
+  T -->|posts + commands| BAND[BAND room]
+  T -->|character voices · postcards| R[Runware]
+  T --> L[logs/decisions.jsonl] --> AU[Bruin agent_report audit]
 ```
 
 ## Screenshots
@@ -51,7 +90,7 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 | Booster: 3D | Three.js planet, agents, smog, orbiting debris |
 | Booster: learns between runs | `data/agent_memory.json`: per-agent action → reward running averages bias the next run ("remembers run 2: prefers to tend") |
 | Real-world impact | **Today** tab: your carbon ledger vs a budget the council sets; log trips, energy, showers, trash, bills; guardians give missions from your real log ("Travel and energy are at 10.1 kg today. You drove 40 km."). The agents never judge what people eat. |
-| Booster: voice | Each agent speaks big moments with its own pitch and rate (Web Speech). Me → Agent voices |
+| Booster: voice | Each character speaks with its own **Runware** text-to-speech voice (🔊 in the top bar, 🔊 Hear on every character card); the browser's speech is only a fallback |
 
 ## The carbon ledger and the council
 
@@ -69,8 +108,9 @@ Real actions (a Litter Hunt, a walk instead of a drive, a mission) earn **seeds*
 - **Tap a character** on the planet to see its mood and what it wants, give it seeds, or ask it for a personal mission.
 - **Story tab:** the run as a short feed of big moments (with faces); the full decision log with reasons and sources sits under a fold for judges.
 
-## Games (🎮 Play in the top bar)
+## Games (🎮 GAMES on the planet)
 
+- **Trash Dash** (real-time arcade, co-op): you and Ripplet catch falling litter while the Smog Baron flies overhead dropping smog bombs. Ripplet is an agent: it chases the best item on its half, dodges bombs and calls out your combos. Golden seeds, x2/x3 combos, 3 hearts, 45 seconds. Your score heals the ocean for everyone.
 - **Baron Duel** (co-op, AI teammate): Leaf drinks Wave, Wave puts out Fire, Fire burns Leaf. You and the guardian of the weakest zone play together against the Smog Baron. The Baron is an agent that learns: he counters the move you play most. Your teammate reads his pattern out loud ("He keeps countering your Wave, so I'm going Fire!") and picks its own move. Best of 3; a win heals that zone for everyone.
 - **Smog Pop**: pop the Baron's smog blob in 20 seconds.
 - **Litter Hunt** and **Ask for a mission**: the real-life games that earn seeds.

@@ -294,6 +294,8 @@ export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
   const clock = new THREE.Clock();
   const wp = new THREE.Vector3(), nrm = new THREE.Vector3();
   function frame() {
+    // a sheet (games, today, story) covers the planet: skip the 3D work so games stay smooth on phones
+    if (document.body.classList.contains('covered')) { clock.getDelta(); requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, clock.getDelta());
     const t = clock.elapsedTime;
     if (!dragging) { world.rotation.y += velY; velY += (0.0016 - velY) * 0.02; }
