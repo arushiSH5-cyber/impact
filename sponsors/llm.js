@@ -8,7 +8,7 @@
 const status = require('./status');
 const FX = require('../public/factors.js').ImpactFactors;
 const { st, health, fail } = status('set GEMINI_API_KEY or OPENAI_API_KEY to enable (receipt scan + agent voices)');
-let provider = null, model = null, calls = 0, scans = 0, lastSay = 0;
+let chain = [], calls = 0, scans = 0, lastSay = 0, lastServed = '';  // chain: [{ name, model }] in order of preference
 
 // ------------------------------------------------------------------ schema + prompt (shared)
 const ITEM_SCHEMA = {
@@ -68,12 +68,11 @@ async function geminiPickModel() {
   // keep the first one that really answers on this key (some have no free quota or are overloaded)
   const tried = [];
   for (const m of order.slice(0, 8)) {
-    model = m;
-    try { if (await gemini([{ text: 'Reply with the single word: ready' }], false)) return m; } catch (e) { tried.push(`${m}: ${String(e.message).slice(0, 40)}`); }
+    try { if (await gemini([{ text: 'Reply with the single word: ready' }], false, m)) return m; } catch (e) { tried.push(`${m}: ${String(e.message).slice(0, 40)}`); }
   }
   throw new Error(`no Gemini model answered on this key (${tried.join('; ') || 'none listed'})`);
 }
-async function gemini(parts, json) {
+async function gemini(parts, json, model) {
   const generationConfig = json ? { responseMimeType: 'application/json', responseJsonSchema: ITEM_SCHEMA } : {};
   const r = await fetch(`${GEMINI}/models/${model}:generateContent`, {
     method: 'POST',
@@ -88,7 +87,7 @@ async function gemini(parts, json) {
 }
 
 // ------------------------------------------------------------------ OpenAI (Responses API)
-async function openai(content, json) {
+async function openai(content, json, model) {
   const body = { model, input: [{ role: 'user', content }] };
   if (json) body.text = { format: { type: 'json_schema', name: 'receipt_items', strict: true, schema: ITEM_SCHEMA } };
   const r = await fetch('https://api.openai.com/v1/responses', {
@@ -108,20 +107,48 @@ async function openai(content, json) {
   return out.join('').trim();
 }
 
-// ------------------------------------------------------------------ provider-neutral calls
-async function ask(text) {
-  calls++;
-  const t = provider === 'gemini' ? await gemini([{ text }], false) : await openai([{ type: 'input_text', text }], false);
-  st.detail = `${provider} · ${model} · ${calls} calls · ${scans} scans`;
-  return t;
+async function openaiPickModel() {
+  const ready = async (m) => !!(await openai([{ type: 'input_text', text: 'Reply with the single word: ready' }], false, m));
+  if (process.env.OPENAI_MODEL) { await ready(process.env.OPENAI_MODEL); return process.env.OPENAI_MODEL; }
+  // ask which models this key can use; prefer the newest general GPT model (small "mini" ones first: fast and cheap)
+  const r = await fetch('https://api.openai.com/v1/models', { headers: { authorization: 'Bearer ' + process.env.OPENAI_API_KEY } });
+  if (!r.ok) throw await readError(r, 'OpenAI models');
+  const all = ((await r.json()).data || []).filter((m) => /^gpt-\d/.test(m.id) && !/(audio|realtime|transcribe|tts|image|search|codex|instruct|\d{4}-\d{2}-\d{2})/.test(m.id))
+    .sort((a, b) => (b.created || 0) - (a.created || 0)).map((m) => m.id);
+  const order = [...all.filter((id) => /mini/.test(id) && !/nano/.test(id)), ...all.filter((id) => !/mini|nano/.test(id))];
+  const tried = [];
+  for (const m of order.slice(0, 5)) {
+    try { if (await ready(m)) return m; } catch (e) { tried.push(`${m}: ${String(e.message).slice(0, 40)}`); }
+  }
+  throw new Error(`no OpenAI model answered on this key (${tried.join('; ') || 'none listed'})`);
 }
+
+// ------------------------------------------------------------------ provider-neutral calls with fallback
+const label = () => chain.map((p, i) => `${i ? 'backup ' : ''}${p.name} ${p.model}`).join(' → ');
+function setDetail() { st.detail = `${label()} · ${calls} calls · ${scans} scans${lastServed ? ` · last answer: ${lastServed}` : ''}`; }
+async function run(job) {
+  const errors = [];
+  for (const p of chain) {
+    try {
+      calls++;
+      const t = p.name === 'gemini' ? await gemini(job.gemini, job.json, p.model) : await openai(job.openai, job.json, p.model);
+      lastServed = p.name;
+      setDetail();
+      return t;
+    } catch (e) { errors.push(`${p.name}: ${String(e.message).slice(0, 80)}`); }
+  }
+  setDetail();
+  throw new Error(errors.join(' | '));
+}
+const ask = (text) => run({ json: false, gemini: [{ text }], openai: [{ type: 'input_text', text }] });
 async function extract(img) {
-  calls++;
-  const t = provider === 'gemini'
-    ? await gemini([{ inline_data: { mime_type: img.mime, data: img.data } }, { text: SCAN_PROMPT }], true)
-    : await openai([{ type: 'input_image', image_url: img.url }, { type: 'input_text', text: SCAN_PROMPT }], true);
+  const t = await run({
+    json: true,
+    gemini: [{ inline_data: { mime_type: img.mime, data: img.data } }, { text: SCAN_PROMPT }],
+    openai: [{ type: 'input_image', image_url: img.url }, { type: 'input_text', text: SCAN_PROMPT }],
+  });
   scans++;
-  st.detail = `${provider} · ${model} · ${calls} calls · ${scans} scans`;
+  setDetail();
   return t;
 }
 
@@ -129,15 +156,19 @@ module.exports = {
   health, fail,
   ok: () => st.ok,
   async init() {
-    const want = (process.env.AI_PROVIDER || '').toLowerCase();
-    const hasG = !!process.env.GEMINI_API_KEY, hasO = !!process.env.OPENAI_API_KEY;
-    provider = want === 'openai' && hasO ? 'openai' : want === 'gemini' && hasG ? 'gemini' : hasG ? 'gemini' : hasO ? 'openai' : null;
-    if (!provider) return;
-    model = provider === 'gemini' ? await geminiPickModel() : process.env.OPENAI_MODEL || 'gpt-6-astra';
-    const t = await ask('Reply with the single word: ready');
-    if (!t) throw new Error(`${provider} returned an empty reply`);
+    // every provider with a key is checked with a real call; working ones form the chain (Gemini first unless AI_PROVIDER=openai)
+    const order = (process.env.AI_PROVIDER || '').toLowerCase() === 'openai' ? ['openai', 'gemini'] : ['gemini', 'openai'];
+    const errors = [];
+    chain = [];
+    for (const name of order) {
+      if (name === 'gemini' && !process.env.GEMINI_API_KEY) continue;
+      if (name === 'openai' && !process.env.OPENAI_API_KEY) continue;
+      try { chain.push({ name, model: name === 'gemini' ? await geminiPickModel() : await openaiPickModel() }); }
+      catch (e) { errors.push(`${name}: ${String(e.message).slice(0, 100)}`); console.log(`  ai: ${name} unavailable: ${String(e.message).slice(0, 160)}`); }
+    }
+    if (!chain.length) { if (errors.length) throw new Error(errors.join(' | ')); return; }
     st.ok = true;
-    st.detail = `${provider} · ${model} · ${calls} calls · ${scans} scans`;
+    setDetail();
   },
   async say(e) {
     if (!st.ok) return null;
