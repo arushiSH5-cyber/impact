@@ -61,7 +61,7 @@
         const f = food(x.food);
         const kg = num(x.kg, 0);
         if (!f || !kg) return Object.assign(r, { cat: 'food', label: x.name || 'grocery item', src: 'not in the factor table: not counted', skip: true });
-        return Object.assign(r, { cat: 'food', key: 'food:' + f, amount: kg, kg: FOOD[f] * kg, label: `${x.name || f} ${kg.toFixed(2)} kg`, src: SRC.owid });
+        return Object.assign(r, { cat: 'food', key: 'food:' + f, amount: kg, kg: FOOD[f] * kg, label: x.name && /\bkg\b/i.test(x.name) ? x.name : `${x.name || f} ${kg.toFixed(2)} kg`, src: SRC.owid });
       }
       case 'food_waste': {
         const f = food(x.food);

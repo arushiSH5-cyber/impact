@@ -263,11 +263,11 @@ const routes = {
     send(res, 200, { source: 'live from the server (Bruin footprint_daily not built yet: run `bruin run pipeline`)', bruin: false, rows: today });
   },
   async 'POST /api/scan'(req, res) {
-    if (!sponsors.llm.ok()) return send(res, 503, { error: 'Receipt scan needs ANTHROPIC_API_KEY on the server' });
+    if (!sponsors.llm.ok()) return send(res, 503, { error: 'Receipt scan needs GEMINI_API_KEY or OPENAI_API_KEY on the server' });
     const b = await readBody(req);
     try {
       const items = await sponsors.llm.scan(b.image);
-      send(res, 200, { items, note: 'Claude extracted these lines only; footprints are computed from cited factors.' });
+      send(res, 200, { items, note: 'The AI extracted these lines only; footprints are computed from cited factors.' });
     } catch (e) { send(res, 502, { error: e.message }); }
   },
   'GET /api/sim'(req, res, u) {

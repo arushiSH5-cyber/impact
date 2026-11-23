@@ -564,7 +564,7 @@ const SPONSORS = [
   ['band', 'BAND', 'Agent events posted to a real BAND room'],
   ['runware', 'Runware', 'World postcard painted from live game state'],
   ['glasser', 'Glasser', 'Real drop-off places in Bin Buddy'],
-  ['llm', 'Claude', 'Reads receipts and bills (vision) + one-line agent voices'],
+  ['llm', 'Gemini / OpenAI', 'Reads receipts and bills (vision) + one-line agent voices'],
 ];
 TABS.me = {
   title: 'Me',
@@ -689,7 +689,7 @@ TABS.today = {
       <p class="small muted" style="margin:4px 0">Your daily budget is set by the agent council and changes when they negotiate. Every number uses cited EPA and Poore &amp; Nemecek factors.</p>
       ${L.saved > 0 ? `<span class="chip ok">${L.saved.toFixed(1)} kg saved by walking/biking</span>` : ''}</div></div>
       <div class="bigacts"><button class="p" id="tdLog"><svg class="ic"><use href="#i-plus"/></svg><span>Log something<small>meals, trips, showers, trash…</small></span></button>
-      <button id="tdScan"><svg class="ic"><use href="#i-scan"/></svg><span>Scan a receipt or bill<small>${llm ? 'Claude reads it, factors do the math' : 'needs the server + Claude key'}</small></span></button></div>
+      <button id="tdScan"><svg class="ic"><use href="#i-scan"/></svg><span>Scan a receipt or bill<small>${llm ? 'AI reads it, factors do the math' : 'needs the server + an AI key'}</small></span></button></div>
       ${CATUI.map(([k, n, ag, col, unit]) => {
         const v = L[k] || 0, bb = b[k] || 1;
         return `<div class="cat"><img src="${faceURL(IA.AG[ag], 80)}" alt=""><div><div class="top"><span>${n}</span><span>${k === 'water' || k === 'stuff' ? Math.round(v) : v.toFixed(1)} / ${bb} ${unit}</span></div>
@@ -777,10 +777,10 @@ async function submitLog(items, via) {
   openSheet('today');
 }
 
-// ------------------------------------------------------------------ receipt / bill scan: Claude extracts, factors do the math
+// ------------------------------------------------------------------ receipt / bill scan: the AI extracts, factors do the math
 function scanFlow() {
   if (!(mode === 'online' && HEALTH.llm && HEALTH.llm.ok)) {
-    modal(`<h2>Scan needs Claude</h2><p class="muted">Receipt and bill scanning runs on the server with an Anthropic key (ANTHROPIC_API_KEY). Claude only reads the line items. The carbon math uses cited EPA and Poore &amp; Nemecek factors, so it can't make up numbers.</p>
+    modal(`<h2>Scan needs an AI key</h2><p class="muted">Receipt and bill scanning runs on the server with a Gemini or OpenAI key (GEMINI_API_KEY or OPENAI_API_KEY). The AI only reads the line items. The carbon math uses cited EPA and Poore &amp; Nemecek factors, so it can't make up numbers.</p>
       <div class="row" style="justify-content:center"><button class="btn" id="scQ">Log by tapping instead</button><button class="btn ghost" data-close>Close</button></div>`);
     $('#scQ').onclick = () => composer();
     return;
@@ -790,7 +790,7 @@ function scanFlow() {
   inp.onchange = async () => {
     const f = inp.files[0];
     if (!f) return;
-    modal('<h2>Reading your receipt…</h2><p class="muted">Claude extracts the lines. The factors do the math.</p>');
+    modal('<h2>Reading your receipt…</h2><p class="muted">The AI extracts the lines. The factors do the math.</p>');
     const url = await new Promise((res) => {
       const im = new Image();
       im.onload = () => {
@@ -814,7 +814,7 @@ function scanFlow() {
       modal(`<img src="${url}" alt="Your receipt" class="photo-prev"><h2>Found ${items.length} item${items.length === 1 ? '' : 's'}</h2>
         <div class="pend">${lines.map((x, i) => `<div class="li"><span>${esc(x.label)}<small>${x.skip ? 'not counted (no cited factor)' : esc(x.src)}</small></span><b>${x.skip ? '·' : lineAmount(x)}</b><button class="x" data-rm="${i}" aria-label="Remove">✕</button></div>`).join('') || '<p class="small muted">Nothing readable. Try a clearer photo.</p>'}</div>
         <div class="row" style="justify-content:center"><button class="btn" id="scGo" ${items.length ? '' : 'disabled'}>Log these</button><button class="btn ghost" data-close>Cancel</button></div>
-        <p class="small muted">Read by Claude. Numbers from cited factors, recomputed by Bruin.</p>`);
+        <p class="small muted">Read by AI. Numbers from cited factors, recomputed by Bruin.</p>`);
       document.querySelectorAll('[data-rm]').forEach((x) => (x.onclick = () => { items.splice(+x.dataset.rm, 1); draw(); }));
       $('#scGo').onclick = () => submitLog(items, 'scan');
     };

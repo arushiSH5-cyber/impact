@@ -52,7 +52,7 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 ## The carbon ledger and the council
 
 - **Log it** (center tab): tap what you did. Each line is computed from `public/factors.js`, where every number is cited: Poore & Nemecek (2018) via Our World in Data for food; US EPA for driving (404 g CO2/mile), gasoline (8,887 g/gal), electricity (0.394 kg/kWh), natural gas, and WaterSense for showers. Assumptions (like a 150 g portion) are shown next to the number.
-- **Scan a receipt or bill**: Claude reads the photo and only *extracts* line items into a fixed JSON schema. It never produces a number: the server computes footprints from the same cited factors, and unknown items are shown as "not counted", never guessed.
+- **Scan a receipt or bill**: Gemini (or OpenAI) reads the photo and only *extracts* line items into a fixed JSON schema. It never produces a number: the server computes footprints from the same cited factors, and unknown items are shown as "not counted", never guessed.
 - The server ignores any numbers the client sends; it recomputes every line. Each line goes to `logs/ledger.jsonl` with its factor key and amount.
 - **Missions from your log**: when you go over today's budget in a category, its agent reacts on the next tick (Mossling: food, Frostbun: travel and energy, Ripplet: water, Sunfox: stuff). Logging a tofu meal completes Mossling's "plant-based meal" mission.
 - **Council** (every 12 ticks): the agents read the street's real logs, and an under-budget guardian can give part of its budget to an over-budget one (if it trusts it). The Smog Baron lobbies for a "Black Friday flash sale"; Sunfox casts the deciding vote based on its greed and trust. The council also learns which nudges each person actually follows.
@@ -102,7 +102,7 @@ The app's **Me → How Impact works** shows live status from `/api/health`. A sp
 | BAND | Ally/betray/quest/fight/end events posted to a BAND room with an @mention, max 1 per agent per minute; log shows "posted to BAND" | ⚪ adapter written (`sponsors/band.js`), **not verified: no API key / room yet** |
 | Runware | "Make my world postcard" paints the live planet state; cost counter | ⚪ adapter written (`sponsors/runware.js`), **not verified: no API key yet**. Total cost so far: $0 |
 | Glasser | "Drop-off places near me" in Bin Buddy | ⚪ adapter written (`sponsors/glasser.js`), **not verified: CLI not installed, no key** |
-| Claude (Anthropic) | Receipt/bill scanner (vision, extraction only, structured JSON) + one-line agent voices | ⚪ adapter written (`sponsors/llm.js`, `claude-opus-5-5`), **not verified: no API key yet**. Without it, logging by tapping still works |
+| AI: Gemini (OpenAI optional) | Receipt/bill scanner (vision, extraction only, structured JSON) + one-line agent voices (max 1 per 30 s) | ✅ **used: Gemini verified with a real call**. A test grocery receipt came back as 6 correct items (paper towels, tax and totals skipped); footprints computed from the cited factors. The server picks the newest Flash model the key can actually use. OpenAI path written, not verified (no key) |
 | Lingcode | Wrap the PWA as an app | not used yet |
 | Teamily | "Maple St" street group for humans + a role agent (link in Neighbors) | event comms |
 | AdaL | Demo video | — |
@@ -122,6 +122,6 @@ public/agents-engine.js   the five agents (shared by server and browser)
 public/factors.js         cited emission factors (shared by server and browser)
 public/app.js             PWA UI · public/globe.js 3D planet · public/faces.js characters
 pipeline/                 Bruin assets  ·  .bruin.yml (DuckDB at data/impact.duckdb)
-sponsors/                 Telem, BAND, Runware, Glasser, Claude adapters (honest health)
+sponsors/                 Telem, BAND, Runware, Glasser, Gemini/OpenAI adapters (honest health)
 test/engine.test.js       engine checks
 ```
