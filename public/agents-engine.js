@@ -257,9 +257,9 @@
     if (S.offer && S.tick - S.offer.tick > 5) S.offer = null; // bribes expire
     if (S.offer) {
       const amt = S.offer.amount;
-      O.push({ t: 'betray', s: 0.25 + amt / 45 - trustInFox * 0.5 + (a.tr.greed - 1) * 0.45,
+      O.push({ t: 'betray', s: 0.3 + amt / 35 - trustInFox * 0.4 + (a.tr.greed - 1) * 0.5,
         why: `the Baron offered ${amt} seeds and the guardians only trust it ${trustInFox.toFixed(2)}` });
-      O.push({ t: 'refuse', s: 0.5 + trustInFox * 0.6,
+      O.push({ t: 'refuse', s: 0.4 + trustInFox * 0.5,
         why: `the guardians trust it ${trustInFox.toFixed(2)}, so their friendship is worth more than ${amt} seeds` });
     }
     if (S.intel && trustInFox > 0.1) {
@@ -491,7 +491,7 @@
     for (const a of S.agents) before[a.id] = objective(S, a);
 
     // the world slowly decays, faster where real-world smog is high
-    for (const z of ZONES) S.H[z] = clamp(S.H[z] - 0.3 - sp[z].smog_pressure * 0.07, 0, 100);
+    for (const z of ZONES) S.H[z] = clamp(S.H[z] - 0.35 - sp[z].smog_pressure * 0.07, 0, 100);
 
     const order = S.agents.slice().sort(() => rand(S) - 0.5);
     const entries = [];
