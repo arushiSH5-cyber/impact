@@ -164,7 +164,7 @@ function maybeAway(S) {
   const missed = S.log.filter((e) => e.t > last && e.agent !== 'human');
   const serverAway = S.away && S.away.at > last ? S.away : null;
   if (!last || gone < 90000 || (!missed.length && !serverAway)) return;
-  const pick = (k) => missed.filter((e) => e.k === k);
+  const pick = (k) => missed.filter((e) => e.k === k).slice(-2);
   const lines = [];
   if (serverAway) lines.push(`The world server was off and caught up <b>${serverAway.missed} missed ticks</b> when it came back.`);
   const startH = serverAway ? serverAway.fromH : null;
