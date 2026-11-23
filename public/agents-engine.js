@@ -73,8 +73,8 @@
     return m;
   }
   const sourceLabel = (sp) => {
-    const snap = /sample|snapshot/.test(sp.forest.source || '');
-    return `Bruin · daily_spawn ${sp.forest.date}${snap ? ' (snapshot)' : ''}`;
+    if (/sample|snapshot/.test(sp.forest.source || '')) return `bundled air snapshot ${sp.forest.date} (Bruin not run yet)`;
+    return `Bruin · daily_spawn ${sp.forest.date}`;
   };
   function dataLine(sp, zone) {
     if (!zone) return ZONES.filter((z) => z !== 'space').map((z) => `${ZONE_NAME[z]} PM2.5 ${sp[z].pm25}`).join(' · ');

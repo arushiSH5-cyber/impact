@@ -1,0 +1,14 @@
+{
+  "name": "impact",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Co-op planet: 5 AI agents with their own goals, live air data through a Bruin pipeline, and real eco actions from 2+ humans",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "demo": "TICK_MS=3000 node --env-file-if-exists=.env server.js",
+    "pipeline": "bruin run pipeline",
+    "all": "bruin run pipeline && node --env-file-if-exists=.env server.js",
+    "test": "node test/engine.test.js"
+  },
+  "engines": { "node": ">=20.12" }
+}
