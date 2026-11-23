@@ -22,7 +22,7 @@ const kinds = new Set(S.log.map((e) => e.k));
 assert.ok(kinds.has('ally') || kinds.has('trade'), 'agents should ally or trade');
 // personalized quest from Riya's profile
 const quest = S.log.find((e) => e.k === 'quest' && e.agent === 'mossling');
-if (quest) assert.match(quest.act, /plant-based/, 'Mossling should pick a plant-based quest for a meat eater');
+if (quest) assert.doesNotMatch(quest.act, /plant-based|meal|meat/, 'agents never judge what people eat');
 
 // a real action heals the zone and is logged
 const before = S.H.ocean;
@@ -44,10 +44,8 @@ assert.ok(next.log.some((e) => e.k === 'learn'), 'agents should remember the pre
   assert.strictEqual(e.items.length, 2, 'unknown foods are skipped, not guessed');
   assert.ok(Math.abs(L.players.r.led.food - 99.48 * 0.15) < 1e-9, 'beef meal = 99.48 kg/kg × 150 g');
   for (let i = 0; i < 13; i++) IA.tick(L, null, {});
-  assert.ok(L.log.some((x) => x.k === 'quest' && x.agent === 'mossling' && /plant-based/.test(x.act)), 'Mossling reacts to the over-budget food log');
+  assert.ok(!L.log.some((x) => x.k === 'quest' && /plant-based|meal/.test(x.act)), 'no agent nags about food');
   assert.ok(L.log.some((x) => x.k === 'council'), 'the council meets');
-  const done = IA.human(L, 'r', { real: true, items: [{ kind: 'meal', food: 'tofu' }] }, false);
-  assert.match(done.why, /Completed Mossling's quest/, 'a logged tofu meal completes the plant-based quest');
 }
 
 console.log(`ok · seed 42: ${a.status} (${a.avg}) · seed 7: ${c.status} (${c.avg}) · ${S.log.length} log entries`);

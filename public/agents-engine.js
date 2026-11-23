@@ -29,7 +29,7 @@
 
   const AGENTS = [
     { id: 'mossling', name: 'Mossling', role: 'Gardener', type: 'guardian', goal: 'forest', home: 'forest', color: '#5fbf6a',
-      voice: { pitch: 1.4, rate: 1.05 }, bio: 'Wants the forest back above 70. Plants trees, makes allies, asks humans for plant-based meals.' },
+      voice: { pitch: 1.4, rate: 1.05 }, bio: 'Wants the forest back above 70. Plants trees, makes allies, asks humans to help clean up parks.' },
     { id: 'ripplet', name: 'Ripplet', role: 'Cleaner', type: 'guardian', goal: 'ocean', home: 'ocean', color: '#4aa8e0',
       voice: { pitch: 1.2, rate: 1.1 }, bio: 'Hates plastic. Cleans beaches and recruits humans for litter hunts.' },
     { id: 'frostbun', name: 'Frostbun', role: 'Keeper', type: 'guardian', goal: 'ice', home: 'ice', color: '#bfe6ff',
@@ -178,9 +178,7 @@
     const p = profile || {};
     switch (zone) {
       case 'forest':
-        return p.eat === 'meat'
-          ? ['meal', 'Eat one plant-based meal today', 'You told me you eat a lot of meat. One swap helps my trees.']
-          : ['litter', 'Pick up 3 pieces of litter at a park', 'The park needs hands, not just wishes.'];
+        return ['litter', 'Pick up 3 pieces of litter at a park', 'The park needs hands, not just wishes.'];
       case 'ocean':
         if (p.waste === 'bottles') return ['bottle', 'Use a refill bottle all day', 'You said bottles are your biggest waste.'];
         if (p.waste === 'takeout') return ['refuse', 'Say no to 3 single-use plastics', 'Takeout cutlery ends up on my beach.'];
@@ -333,8 +331,6 @@
   function ledgerQuest(cat, p, S) {
     if (!loggedToday(p)) return null;
     const L = p.led, b = S.budget || DEFAULT_BUDGET;
-    if (cat === 'food' && L.food > b.food) return ['meal', 'Make your next meal plant-based', `You're at ${L.food.toFixed(1)} kg CO2e from food today (budget ${b.food}).${L.top ? ` Your ${L.top} was the big one.` : ''}`];
-    if (cat === 'food' && L.waste > 0) return ['leftovers', 'Eat or freeze leftovers instead of tossing them', `You threw out ${Math.round(L.waste * 1000)} g of food today. It still counts at its full footprint.`];
     if (cat === 'travel' && L.travel > b.travel) return ['walk', 'Swap one short car trip for walking or biking', `Travel and energy are at ${L.travel.toFixed(1)} kg today (budget ${b.travel}).${L.km ? ` You drove ${L.km.toFixed(0)} km.` : ''}`];
     if (cat === 'water' && L.water > b.water) return ['shower', 'Do a 5-minute shower sprint', `You've used about ${Math.round(L.water)} L today (budget ${b.water} L).`];
     if (cat === 'stuff' && (L.stuff > b.stuff || L.plastic > 1)) return ['refuse', 'Say no to 3 single-use plastics', `${L.plastic} plastic items and ${L.bags} trash bags logged today.`];

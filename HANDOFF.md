@@ -104,7 +104,7 @@ Change the picture style: the prompt in `postcard()` in `sponsors/runware.js`.
 |---|---|
 | **Planet** (home) | Watch the 5 characters move and talk. **Tap a name** to open the character: mood, what it wants, *Give me a mission*, *Give 5 seeds*. Showdown cards pop up here. |
 | **Showdown card** | *"The Baron is bribing Sunfox!"* → **Outbid** with seeds before Sunfox decides (2 ticks). *"The Baron is eyeing the Desert!"* → **Shield**. Result: *"Sunfox stayed loyal!"* (confetti) or *"BETRAYED everyone!"* |
-| **Log (+)** | Log real things (meals, drives, showers, trash, bills) with cited CO₂ math. Good swaps earn seeds and complete missions. |
+| **Log (+)** | Log real things (drives, showers, trash, bills) with cited CO₂ math. Good swaps earn seeds and complete missions. |
 | **Today** | Your CO₂ ring vs the council's budget, missions, **Litter Hunt**, scan a receipt, Feed & news. |
 | **Litter Hunt** | Walk 150 m (GPS on the https link), tap **Binned one** + photo per piece. Heals the ocean, completes Ripplet's mission, earns seeds, goes on the leaderboard. |
 | **Story** | The run as big moments with faces. The fold "Every decision…" has the full log with reasons and sources, **Run it twice** (seed 42 vs 7), **Run report** (Bruin audit), **New run**. |
@@ -116,7 +116,7 @@ Change the picture style: the prompt in `postcard()` in `sponsors/runware.js`.
 ## 6. Two-minute demo script
 
 1. **(0:00) The living planet.** "Five AI characters live here and act every 10 seconds, even when nobody's playing." Tap Mossling: mood, what it wants.
-2. **(0:20) Real life earns power.** On the phone: Log → a beef meal. Within a tick Mossling asks for a plant-based meal. Log tofu → mission complete, confetti, seeds.
+2. **(0:20) Real life earns power.** On the phone: Log → drove 40 km. Within a tick Frostbun asks you to swap a car trip for walking. Log a walk → mission complete, confetti, seeds.
 3. **(0:40) Showdown.** The Baron bribes Sunfox; both phones get the card. Outbid. Sunfox stays loyal (or betrays, and you shield the weak zone).
 3b. **(0:50) Baron Duel.** 🎮 Play → Baron Duel. Your AI teammate explains its move; the Baron (Hades voice) taunts. Turn voices on first (🔊 top bar).
 4. **(1:00) BAND.** The room fills with agent posts. Type `@Impact World rally ocean`; the ocean heals on both phones.

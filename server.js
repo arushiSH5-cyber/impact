@@ -225,7 +225,7 @@ sponsors.band.listen(async (text, from) => {
   if (/\bbudget|council\b/.test(t)) {
     const b = S.budget || IA.DEFAULT_BUDGET;
     const c = S.log.filter((e) => e.k === 'council').slice(-2).map((e) => `${IA.AG[e.agent] ? IA.AG[e.agent].name + ' ' : ''}${e.act}`).join(' / ');
-    return `Today's street budget per person: food ${b.food} kg CO2e, travel ${b.travel} kg, water ${b.water} L, stuff ${b.stuff} items.${c ? ` Last council: ${c}.` : ''}`;
+    return `Today's street budget per person: travel ${b.travel} kg CO2e, water ${b.water} L, stuff ${b.stuff} items.${c ? ` Last council: ${c}.` : ''}`;
   }
   if (/\b(report|audit|bruin)\b/.test(t)) {
     const rows = readCSV(REPORT_FILE);

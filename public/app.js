@@ -404,7 +404,6 @@ const ACTIONS = [
   { id: 'bottle', label: 'Used a refill bottle', z: { ocean: 4 }, tip: 'Ocean +4' },
   { id: 'refuse', label: 'Said no to 3 single-use plastics', z: { ocean: 4 }, tip: 'Ocean +4' },
   { id: 'walk', label: 'Walked or biked instead of driving', z: { ice: 4 }, tip: 'Ice +4' },
-  { id: 'meal', label: 'Ate a plant-based meal', z: { forest: 4 }, tip: 'Forest +4' },
   { id: 'litter', label: 'Picked up litter outside', z: { forest: 2, ocean: 2 }, tip: 'Forest +2 · Ocean +2' },
   { id: 'unplug', label: 'Unplugged chargers, lights off', z: { desert: 4 }, tip: 'Desert +4' },
   { id: 'shower', label: 'Took a 5-minute shower', z: { desert: 3 }, tip: 'Desert +3' },
@@ -557,7 +556,7 @@ TABS.neighbors = {
       return `<div class="entry human"><img src="${faceURL(BUDDIES.find((b) => b.id === p.av) || BUDDIES[0], 80)}" alt=""><div>
         <b>${esc(p.name)}</b>${me && p.id === me.id ? ' (you)' : ''} <span class="chip ${recent ? 'ok' : ''}">${recent ? 'active now' : 'seen ' + new Date(p.seen).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
         <div class="small muted">${p.acts} actions · healed ${p.score} · ${Object.entries(p.zoneHelp || {}).map(([z, v]) => `${ZN[z]} +${Math.round(v)}`).join(' · ') || 'no help yet'}</div>
-        ${ledToday(p) ? `<div class="small"><b>Today (real log):</b> food ${p.led.food.toFixed(1)} · travel ${p.led.travel.toFixed(1)} kg CO₂e · water ${Math.round(p.led.water)} L · ${p.led.stuff} items</div>` : ''}</div></div>`;
+        ${ledToday(p) ? `<div class="small"><b>Today (real log):</b> travel ${p.led.travel.toFixed(1)} kg CO₂e · water ${Math.round(p.led.water)} L · ${p.led.stuff} items</div>` : ''}</div></div>`;
     }).join('') || '<p class="muted">Just you so far.</p>');
   },
   mount() {
@@ -788,7 +787,6 @@ TABS.me = {
 // ------------------------------------------------------------------ onboarding
 const QUIZ = [
   ['move', 'How do you usually get around?', [['car', '<svg class="dd" aria-hidden="true"><use href="#d-car"/></svg> Car, mostly'], ['transit', '<svg class="dd" aria-hidden="true"><use href="#d-bus"/></svg> Bus or train'], ['walk', '<svg class="dd" aria-hidden="true"><use href="#d-bike"/></svg> Walk or bike']]],
-  ['eat', 'What do you eat most?', [['meat', '<svg class="dd" aria-hidden="true"><use href="#d-burger"/></svg> Meat most days'], ['mixed', '<svg class="dd" aria-hidden="true"><use href="#d-salad"/></svg> A mix'], ['plant', '<svg class="dd" aria-hidden="true"><use href="#d-sprout"/></svg> Mostly plants']]],
   ['waste', 'What do you throw away most?', [['bottles', '<svg class="dd" aria-hidden="true"><use href="#d-bottle"/></svg> Plastic bottles'], ['takeout', '<svg class="dd" aria-hidden="true"><use href="#d-takeout"/></svg> Takeout containers'], ['clothes', '<svg class="dd" aria-hidden="true"><use href="#d-shirt"/></svg> Clothes I stop wearing'], ['food', '<svg class="dd" aria-hidden="true"><use href="#d-apple"/></svg> Food']]],
   ['home', 'Where do you live?', [['apartment', '<svg class="dd" aria-hidden="true"><use href="#d-office"/></svg> Apartment'], ['house', '<svg class="dd" aria-hidden="true"><use href="#d-house"/></svg> House']]],
 ];
@@ -846,7 +844,7 @@ window.addEventListener('beforeunload', () => store.set('lastVisit', Date.now())
 
 // ------------------------------------------------------------------ Today: your real carbon ledger, governed by the council
 const FX = window.ImpactFactors;
-const CATUI = [['food', 'Food', 'mossling', '#7cc07f', 'kg CO₂e'], ['travel', 'Travel & energy', 'frostbun', '#7fc2e0', 'kg CO₂e'], ['water', 'Water', 'ripplet', '#4a9fe0', 'L'], ['stuff', 'Stuff & trash', 'sunfox', '#e8b86a', 'items']];
+const CATUI = [['travel', 'Travel & energy', 'frostbun', '#7fc2e0', 'kg CO₂e'], ['water', 'Water', 'ripplet', '#4a9fe0', 'L'], ['stuff', 'Stuff & trash', 'sunfox', '#e8b86a', 'items']];
 const EMPTY_LED = { food: 0, travel: 0, water: 0, stuff: 0, waste: 0, saved: 0, plastic: 0, bags: 0, km: 0, items: [] };
 function ledToday(p) { return !!(p && p.led && p.led.day === new Date().toDateString()); }
 function myLed() { const p = me && W && W.players[me.id]; return ledToday(p) ? p.led : EMPTY_LED; }
@@ -866,14 +864,14 @@ TABS.today = {
   title: 'Today',
   html() {
     const L = myLed(), b = W.budget || IA.DEFAULT_BUDGET;
-    const tot = L.food + L.travel, bud = b.food + b.travel, over = tot > bud;
+    const tot = L.travel, bud = b.travel, over = tot > bud;
     const llm = mode === 'online' && HEALTH.llm && HEALTH.llm.ok;
     const council = W.log.filter((e) => e.k === 'council').slice(-3).reverse();
     return `<div class="tdh"><div class="ring">${ringSVG(tot, bud, over ? '#e0786a' : '#7cc07f')}<div><span><b>${tot.toFixed(1)}</b><small>of ${bud.toFixed(1)} kg CO₂e</small></span></div></div>
       <div><p style="margin:0;font-weight:800">${!L.items.length ? 'Nothing logged yet today.' : over ? 'Over budget. The council is worried.' : 'Under budget. The council is happy.'}</p>
       <p class="small muted" style="margin:4px 0">Your daily budget is set by the agent council and changes when they negotiate. Every number uses cited EPA and Poore &amp; Nemecek factors.</p>
       ${L.saved > 0 ? `<span class="chip ok">${L.saved.toFixed(1)} kg saved by walking/biking</span>` : ''}</div></div>
-      <div class="bigacts"><button class="p" id="tdLog"><svg class="ic"><use href="#i-plus"/></svg><span>Log something<small>meals, trips, showers, trash…</small></span></button>
+      <div class="bigacts"><button class="p" id="tdLog"><svg class="ic"><use href="#i-plus"/></svg><span>Log something<small>trips, energy, showers, trash…</small></span></button>
       <button id="tdScan"><svg class="ic"><use href="#i-scan"/></svg><span>Scan a receipt or bill<small>${llm ? 'AI reads it, factors do the math' : 'needs the server + an AI key'}</small></span></button></div>
       ${CATUI.map(([k, n, ag, col, unit]) => {
         const v = L[k] || 0, bb = b[k] || 1;
@@ -913,16 +911,13 @@ async function loadFoot() {
 // quests: ledger quests open the composer on the right category; others use the Go! actions
 function doQuest(kind) {
   if (kind === 'hunt' || kind === 'litter') return litterHunt();
-  const toComposer = { meal: 'food', leftovers: 'food', walk: 'travel', refuse: 'stuff', shower: 'water' };
+  const toComposer = { walk: 'travel', refuse: 'stuff', shower: 'water' };
   if (toComposer[kind]) return composer(toComposer[kind]);
   doAction(QUEST_ACTION[kind] || 'litter');
 }
 
 // ------------------------------------------------------------------ composer: quick logging with live, cited math
 const QL = {
-  food: [['<svg class="dd" aria-hidden="true"><use href="#d-meat"/></svg>', 'Beef meal', { kind: 'meal', food: 'beef' }], ['<svg class="dd" aria-hidden="true"><use href="#d-drumstick"/></svg>', 'Chicken meal', { kind: 'meal', food: 'chicken' }], ['<svg class="dd" aria-hidden="true"><use href="#d-fish"/></svg>', 'Fish meal', { kind: 'meal', food: 'fish' }],
-    ['<svg class="dd" aria-hidden="true"><use href="#d-egg"/></svg>', 'Eggs', { kind: 'meal', food: 'eggs' }], ['<svg class="dd" aria-hidden="true"><use href="#d-salad"/></svg>', 'Tofu meal', { kind: 'meal', food: 'tofu' }], ['<svg class="dd" aria-hidden="true"><use href="#d-beans"/></svg>', 'Beans / veggie meal', { kind: 'meal', food: 'beans' }],
-    ['<svg class="dd" aria-hidden="true"><use href="#d-bin"/></svg>', 'Threw out leftovers (meat, 300 g)', { kind: 'food_waste', food: 'chicken', kg: 0.3 }], ['<svg class="dd" aria-hidden="true"><use href="#d-bin"/></svg>', 'Threw out leftovers (veg, 300 g)', { kind: 'food_waste', food: 'potatoes', kg: 0.3 }]],
   travel: [['<svg class="dd" aria-hidden="true"><use href="#d-car"/></svg>', 'Drove', { kind: 'drive' }, 'km', 10], ['<svg class="dd" aria-hidden="true"><use href="#d-fuel"/></svg>', 'Filled up gas', { kind: 'gas' }, 'gal', 8], ['<svg class="dd" aria-hidden="true"><use href="#d-bike"/></svg>', 'Walked/biked instead', { kind: 'walk' }, 'km', 3],
     ['<svg class="dd" aria-hidden="true"><use href="#d-plug"/></svg>', 'Electricity (from bill)', { kind: 'kwh' }, 'kWh', 10], ['<svg class="dd" aria-hidden="true"><use href="#d-flame"/></svg>', 'Natural gas (from bill)', { kind: 'therm' }, 'therms', 2]],
   water: [['<svg class="dd" aria-hidden="true"><use href="#d-shower"/></svg>', 'Shower', { kind: 'shower' }, 'min', 8], ['<svg class="dd" aria-hidden="true"><use href="#d-basket"/></svg>', 'Laundry load', { kind: 'laundry', qty: 1 }]],
@@ -931,7 +926,8 @@ const QL = {
 };
 let PEND = [];
 const lineAmount = (x) => (x.cat === 'water' ? Math.round(x.liters || 0) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.cat === 'stuff' ? (x.items || 0) + ' item' : (x.kg || 0).toFixed(2) + ' kg');
-function composer(tab = 'food') {
+function composer(tab = 'travel') {
+  if (!QL[tab]) tab = 'travel';
   if (!me) return;
   const draw = () => {
     const lines = PEND.map(FX.compute);

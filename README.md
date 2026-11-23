@@ -52,7 +52,7 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 | Two runs, different outcomes | Agents panel → **Run it twice** (seed 42 vs 7: instant 120-tick simulations with health curves, betrayals and alliances) |
 | Booster: 3D | Three.js planet, agents, smog, orbiting debris |
 | Booster: learns between runs | `data/agent_memory.json`: per-agent action → reward running averages bias the next run ("remembers run 2: prefers to tend") |
-| Real-world impact | **Today** tab: your carbon ledger vs a budget the council sets; log meals, trips, showers, trash, bills; guardians give missions from your real log ("You're at 14.9 kg CO2e from food today. Your beef was the big one.") |
+| Real-world impact | **Today** tab: your carbon ledger vs a budget the council sets; log trips, energy, showers, trash, bills; guardians give missions from your real log ("Travel and energy are at 10.1 kg today. You drove 40 km."). The agents never judge what people eat. |
 | Booster: voice | Each agent speaks big moments with its own pitch and rate (Web Speech). Me → Agent voices |
 
 ## The carbon ledger and the council
@@ -60,12 +60,12 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 - **Log it** (center tab): tap what you did. Each line is computed from `public/factors.js`, where every number is cited: Poore & Nemecek (2018) via Our World in Data for food; US EPA for driving (404 g CO2/mile), gasoline (8,887 g/gal), electricity (0.394 kg/kWh), natural gas, and WaterSense for showers. Assumptions (like a 150 g portion) are shown next to the number.
 - **Scan a receipt or bill**: Gemini (or OpenAI) reads the photo and only *extracts* line items into a fixed JSON schema. It never produces a number: the server computes footprints from the same cited factors, and unknown items are shown as "not counted", never guessed.
 - The server ignores any numbers the client sends; it recomputes every line. Each line goes to `logs/ledger.jsonl` with its factor key and amount.
-- **Missions from your log**: when you go over today's budget in a category, its agent reacts on the next tick (Mossling: food, Frostbun: travel and energy, Ripplet: water, Sunfox: stuff). Logging a tofu meal completes Mossling's "plant-based meal" mission.
+- **Missions from your log**: when you go over today's budget in a category, its agent reacts on the next tick (Frostbun: travel and energy, Ripplet: water, Sunfox: stuff; Mossling asks for park clean-ups). Logging a walk completes Frostbun's mission.
 - **Council** (every 12 ticks): the agents read the street's real logs, and an under-budget guardian can give part of its budget to an over-budget one (if it trusts it). The Smog Baron lobbies for a "Black Friday flash sale"; Sunfox casts the deciding vote based on its greed and trust. The council also learns which nudges each person actually follows.
 
 ## The game: real life earns seeds, seeds win showdowns
 
-Real actions (a Litter Hunt, a plant-based swap, a mission) earn **seeds**. Seeds are how you play against the agents, live on the planet screen, together with everyone on your street:
+Real actions (a Litter Hunt, a walk instead of a drive, a mission) earn **seeds**. Seeds are how you play against the agents, live on the planet screen, together with everyone on your street:
 - **Bribe showdown:** when the Smog Baron bribes Sunfox, a card pops up on every phone and Sunfox *thinks for 2 ticks*. Players outbid the Baron with seeds; the outbid goes straight into Sunfox's refuse/betray scores. Then everyone sees the result: *"Sunfox stayed loyal!"* or *"Sunfox BETRAYED everyone!"*
 - **Shield:** the Baron's next target is shown live. Seeds put a shield on that zone: it blocks up to 80% of his next attack and makes him less likely to pick it.
 - **Tap a character** on the planet to see its mood and what it wants, give it seeds, or ask it for a personal mission.
