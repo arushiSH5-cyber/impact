@@ -10,11 +10,11 @@ const ZONE_DIR = {
   ocean: new THREE.Vector3(0.1, -0.55, 0.85).normalize(),
   space: new THREE.Vector3(-0.3, 0.75, 0.6).normalize(), // agents in space float above this point
 };
-const HEALTHY = { forest: '#62b86a', ice: '#eef6ff', desert: '#e8c57a', ocean: '#4b9fe0' };
-const SICK = { forest: '#6b5a45', ice: '#9aa3ad', desert: '#8a6d4d', ocean: '#4b5966' };
+const HEALTHY = { forest: '#56c46a', ice: '#f4fbff', desert: '#f2cf86', ocean: '#3ea4f0' };
+const SICK = { forest: '#7d6c52', ice: '#aab0b9', desert: '#a07f58', ocean: '#5a6b80' };
 const R = 1;
 
-export function createGlobe(canvas, labelLayer, agentsDef) {
+export function createGlobe(canvas, labelLayer, agentsDef, onAgent) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   const scene = new THREE.Scene();
@@ -23,6 +23,24 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
   camera.lookAt(0, 0, 0);
 
   scene.add(new THREE.HemisphereLight(0xfff4e0, 0x223355, 1.25));
+  const rim = new THREE.DirectionalLight(0x9fd0ff, 1.1);
+  rim.position.set(-4, 1, -4);
+  scene.add(rim);
+  // soft glowing atmosphere behind the planet
+  {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(128, 128, 60, 128, 128, 128);
+    g.addColorStop(0, 'rgba(140,200,255,0.55)');
+    g.addColorStop(0.55, 'rgba(110,170,255,0.18)');
+    g.addColorStop(1, 'rgba(90,140,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false, transparent: true }));
+    glow.scale.set(3.3, 3.3, 1);
+    glow.renderOrder = -1;
+    scene.add(glow);
+  }
   const sun = new THREE.DirectionalLight(0xffffff, 1.4);
   sun.position.set(3, 4, 5);
   scene.add(sun);
@@ -56,8 +74,10 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
     faceJitter.push(0.92 + Math.random() * 0.16);
     // raise land a touch for a voxel-ish relief
     if (best !== 'ocean') {
+      // land relief: snowy peaks on the ice, rolling hills in the forest, dunes in the desert
+      const lift = best === 'ice' ? 1.03 + Math.abs(n) * 0.18 : best === 'forest' ? 1.022 + Math.abs(n) * 0.06 : 1.018 + Math.abs(n) * 0.04;
       for (let k = 0; k < 3; k++) {
-        const v = new THREE.Vector3().fromBufferAttribute(pos, f * 3 + k).multiplyScalar(1.02);
+        const v = new THREE.Vector3().fromBufferAttribute(pos, f * 3 + k).multiplyScalar(lift);
         pos.setXYZ(f * 3 + k, v.x, v.y, v.z);
       }
     }
@@ -66,6 +86,22 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
   geo.computeVertexNormals();
   const planet = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }));
   world.add(planet);
+  // drifting puffy clouds
+  const clouds = new THREE.Group();
+  const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 1, transparent: true, opacity: 0.92 });
+  for (let i = 0; i < 9; i++) {
+    const c = new THREE.Group();
+    for (let j = 0; j < 3; j++) {
+      const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.05 + Math.random() * 0.035, 0), cloudMat);
+      puff.position.set((j - 1) * 0.06, Math.random() * 0.02, Math.random() * 0.03);
+      c.add(puff);
+    }
+    const d = new THREE.Vector3().randomDirection();
+    c.position.copy(d.multiplyScalar(R * 1.22));
+    c.lookAt(0, 0, 0);
+    clouds.add(c);
+  }
+  world.add(clouds);
 
   function paint(H) {
     const c = new THREE.Color();
@@ -114,10 +150,10 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
   // space debris ring (more junk when Space health is low)
   const debris = [];
   const rockMat = new THREE.MeshStandardMaterial({ color: 0x8f8a96, flatShading: true });
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 22; i++) {
     const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.015 + Math.random() * 0.025, 0), rockMat);
-    const ang = (i / 40) * Math.PI * 2;
-    m.userData = { ang, r: 1.45 + Math.random() * 0.25, y: (Math.random() - 0.5) * 0.25, rank: i / 40 };
+    const ang = (i / 22) * Math.PI * 2;
+    m.userData = { ang, r: 1.45 + Math.random() * 0.25, y: (Math.random() - 0.5) * 0.25, rank: i / 22 };
     scene.add(m);
     debris.push(m);
   }
@@ -135,16 +171,19 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
   const agents = {};
   for (const def of agentsDef) {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 12), new THREE.MeshToonMaterial({ color: def.color }));
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), new THREE.MeshToonMaterial({ color: def.color }));
     body.scale.y = 0.9;
     const face = new THREE.Sprite(new THREE.SpriteMaterial({ map: faceTexture(def), depthTest: true }));
-    face.scale.set(0.15, 0.15, 1);
+    face.scale.set(0.24, 0.24, 1);
     face.position.z = 0.02;
     g.add(body, face);
     world.add(g);
     const label = document.createElement('div');
     label.className = 'glabel';
-    label.innerHTML = `<b>${def.name}</b><span class="bub"></span>`;
+    label.innerHTML = `<b role="button" tabindex="0">${def.name}</b><span class="bub"></span>`;
+    const open = () => onAgent && onAgent(def.id);
+    label.querySelector('b').addEventListener('click', open);
+    label.querySelector('b').addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
     labelLayer.appendChild(label);
     agents[def.id] = { def, g, label, bubble: label.querySelector('.bub'), dir: ZONE_DIR[def.home].clone(), target: ZONE_DIR[def.home].clone(), zone: def.home, offset: offsetFor(def.id), bubbleUntil: 0 };
   }
@@ -185,7 +224,7 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
       if (v.zone !== a.zone) { v.zone = a.zone; v.target = ZONE_DIR[a.zone].clone(); }
       if (a.last && a.last !== v.lastAct) {
         v.lastAct = a.last;
-        v.bubble.textContent = a.last.length > 70 ? a.last.slice(0, 68) + '…' : a.last;
+        v.bubble.textContent = shout(a.last);
         v.bubbleUntil = performance.now() + 7000;
       }
     }
@@ -222,7 +261,7 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
     const x = Math.max(80, Math.min(canvas.clientWidth - 80, (proj.x * 0.5 + 0.5) * canvas.clientWidth));
     const y = (-proj.y * 0.5 + 0.5) * canvas.clientHeight;
     el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
-    el.style.opacity = facing > 0.05 ? 1 : 0;
+    el.style.opacity = facing > -0.12 ? 1 : 0; // keep names visible at the poles and the rim
     el.style.zIndex = Math.round(facing * 100) + 100;
   }
 
@@ -233,6 +272,7 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
     const t = clock.elapsedTime;
     if (!dragging) { world.rotation.y += velY; velY += (0.0016 - velY) * 0.02; }
     world.rotation.x += (rotX - world.rotation.x) * 0.1;
+    clouds.rotation.y += dt * 0.05;
 
     for (const m of smog) {
       const show = m.userData.rank < (1 - H[m.userData.zone] / 100) * 1.3 - 0.15;
@@ -241,7 +281,7 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
     }
     for (const m of debris) {
       const d = m.userData;
-      m.visible = d.rank < (1 - H.space / 100) * 1.2;
+      m.visible = d.rank < (1 - H.space / 100) * 0.8;
       const a = d.ang + t * 0.08;
       m.position.set(Math.cos(a) * d.r, d.y + Math.sin(a * 2) * 0.05, Math.sin(a) * d.r);
       m.rotation.x = t * 0.5 + d.ang;
@@ -272,6 +312,13 @@ export function createGlobe(canvas, labelLayer, agentsDef) {
   return { update, say, resize };
 }
 
+// speech bubbles: short and in character, not log lines
+function shout(t) {
+  let s = String(t || '').replace(/\s*\([^)]*\)/g, '').replace(/^BETRAYED the guardians:.*/i, 'Hehe… sorry, guardians!');
+  s = s.split(/[,:]/)[0];
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  return s.length > 42 ? s.slice(0, 40) + '…' : s + (/[!?…]$/.test(s) ? '' : '!');
+}
 function faceTexture(def) {
   const t = new THREE.CanvasTexture(drawFace(def, 128));
   t.colorSpace = THREE.SRGBColorSpace;

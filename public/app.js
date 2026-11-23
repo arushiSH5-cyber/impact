@@ -7,7 +7,7 @@ const IA = window.ImpactAgents;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ZN = IA.ZN;
-const ZONE_ICON = { forest: '🌳', ice: '🏔️', desert: '🌵', ocean: '🌊', space: '🛰️' };
+const ZONE_ICON = { forest: '<svg class="dd" aria-hidden="true"><use href="#d-tree"/></svg>', ice: '<svg class="dd" aria-hidden="true"><use href="#d-mountain"/></svg>', desert: '<svg class="dd" aria-hidden="true"><use href="#d-cactus"/></svg>', ocean: '<svg class="dd" aria-hidden="true"><use href="#d-wave"/></svg>', space: '<svg class="dd" aria-hidden="true"><use href="#d-orbit"/></svg>' };
 const KEY = 'impact.' + (new URLSearchParams(location.search).get('p') || '1');
 const store = {
   get(k, d) { try { const v = localStorage.getItem(KEY + '.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
@@ -33,7 +33,7 @@ let tickMs = 10000;
 let lastSeenLog = store.get('seenLog', 0);
 let firstSnapshot = true;
 
-const globe = createGlobe($('#globe'), $('#labels'), IA.AGENTS);
+const globe = createGlobe($('#globe'), $('#labels'), IA.AGENTS, (id) => openAgent(id));
 
 function connect() {
   let es;
@@ -90,10 +90,12 @@ function receive(S) {
   W = S;
   setNet();
   globe.update(S);
+  renderShow();
+  cheerMe(S);
   renderZones();
   if (me) {
     const p = S.players[me.id];
-    $('#seedN').textContent = p ? p.score : 0;
+    $('#seedN').textContent = p ? (p.seeds == null ? 10 : p.seeds) : 0;
     const alive = p && p.streakDay && (p.streakDay === new Date().toDateString() || p.streakDay === new Date(Date.now() - 864e5).toDateString());
     $('#streakN').textContent = alive ? p.streak || 0 : 0;
     $('#streakP').title = alive && p.streakDay !== new Date().toDateString() ? 'Do one real thing today to keep your streak' : 'Daily streak: do one real thing every day';
@@ -188,15 +190,19 @@ function modal(html) {
   const m = $('#modal');
   $('#modalC').innerHTML = html;
   m.hidden = false;
+  document.body.classList.add('modal-open');
+  $('#show').hidden = true;
   m.querySelectorAll('[data-close]').forEach((b) => (b.onclick = closeModal));
 }
-function closeModal() { $('#modal').hidden = true; }
+function closeModal() { $('#modal').hidden = true; document.body.classList.remove('modal-open'); setTimeout(renderShow, 0); }
 
 let openTab = null;
 const LIVE_TABS = new Set(['agents', 'neighbors', 'go', 'today']);
 const TABS = {};
 function openSheet(tab) {
   openTab = tab;
+  document.body.classList.toggle('covered', !!tab);
+  setTimeout(renderShow, 0);
   document.querySelectorAll('#tabbar button').forEach((b) => b.classList.toggle('on', b.dataset.tab === (tab || 'globe')));
   if (!tab) { $('#sheet').hidden = true; return; }
   $('#sheet').hidden = false;
@@ -230,9 +236,9 @@ function avatarFor(e) {
   if (IA.AG[e.agent]) return `<img src="${faceURL(IA.AG[e.agent], 80)}" alt="">`;
   if (e.agent === 'human') {
     const p = W.players[e.who];
-    return p ? `<img src="${faceURL(BUDDIES.find((b) => b.id === p.av) || BUDDIES[0], 80)}" alt="">` : '<span class="hicon">🙂</span>';
+    return p ? `<img src="${faceURL(BUDDIES.find((b) => b.id === p.av) || BUDDIES[0], 80)}" alt="">` : '<span class="hicon"><svg class="dd" aria-hidden="true"><use href="#d-smile"/></svg></span>';
   }
-  return '<span class="hicon">🌍</span>';
+  return '<span class="hicon"><svg class="dd" aria-hidden="true"><use href="#d-planet"/></svg></span>';
 }
 function entryHTML(e) {
   const chips = [];
@@ -262,7 +268,7 @@ function agentCards() {
     return `<div class="acard"><img src="${faceURL(d, 104)}" alt=""><h4>${d.name}</h4>
       <div class="muted small">${d.role} · in ${ZN[a.zone]}${esc(ally)}</div>
       <div class="meter" title="energy"><i style="width:${a.energy}%"></i></div>
-      <div class="small">⚡ ${a.energy} · 🌱 ${a.seeds} seeds</div>
+      <div class="small"><svg class="dd" aria-hidden="true"><use href="#d-bolt"/></svg> ${a.energy} · <svg class="dd" aria-hidden="true"><use href="#d-sprout"/></svg> ${a.seeds} seeds</div>
       <div class="small muted" style="margin-top:4px">${d.bio}</div>
       <div class="small" style="margin-top:4px">Personality (from seed): teamwork ${a.tr.coop} · greed ${a.tr.greed} · aggression ${a.tr.aggro}</div>
       <div class="trust">${trust}</div>
@@ -275,9 +281,11 @@ function bruinSource() {
   return b && b.ok ? `<span class="chip ok">Bruin daily_spawn · ${esc(b.detail)}</span>` : `<span class="chip bad">Bruin not run yet: snapshot data</span>`;
 }
 TABS.agents = {
-  title: 'The council',
+  title: 'Story',
   html() {
-    return `<div class="chips"><span class="chip">${mode === 'online' ? 'Live · shared world' : 'Offline · agents run in this browser'}</span>
+    return `<div id="story"></div>
+      <details class="receipts"><summary>Every decision, with reasons and sources (for the curious and the judges)</summary>
+      <div class="chips"><span class="chip">${mode === 'online' ? 'Live · shared world' : 'Offline · agents run in this browser'}</span>
         <span class="chip gold" id="runChip"></span>${bruinSource()}</div>
       <p class="small">5 AI agents with their own goals act every ${Math.round(tickMs / 1000)} seconds, even when nobody is playing. They ally, trade, betray, fight and ask humans for real-world help. Every decision is logged with why, the data it used and its source.</p>
       <div class="cards" id="cards"></div>
@@ -288,11 +296,12 @@ TABS.agents = {
       </div>
       <div id="twiceOut"></div>
       <div id="repOut"></div>
-      <h3>📖 Decision log</h3>
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-book"/></svg> Decision log</h3>
       <div class="filter" id="filters">${Object.entries(FILTERS).map(([k, v]) => `<button data-f="${k}" class="${k === logFilter ? 'on' : ''}">${v}</button>`).join('')}</div>
-      <div class="log" id="log"></div>`;
+      <div class="log" id="log"></div></details>`;
   },
   live() {
+    $('#story').innerHTML = storyHTML();
     const avg = Math.round(IA.avgH(W));
     $('#runChip').textContent = `Run ${W.seed} · tick ${Math.min(W.tick, IA.ROUND)}/${IA.ROUND} · planet ${avg}/100${W.status !== 'playing' ? ' · ' + (W.status === 'won' ? 'guardians won' : 'Baron won') : ''}`;
     $('#cards').innerHTML = agentCards();
@@ -327,7 +336,7 @@ async function runReport() {
   else rep = { source: 'this browser (offline)', rows: IA.report(W.log) };
   const cols = ['agent', 'runs', 'actions', 'allies', 'trades', 'betrayals_and_bribes', 'fights', 'quests_for_humans', 'decisions_using_bruin_data'].filter((c) => rep.rows[0] && c in rep.rows[0]);
   const label = { betrayals_and_bribes: 'betray/bribe', quests_for_humans: 'quests', decisions_using_bruin_data: 'used Bruin data' };
-  out.innerHTML = `<h3>🧾 Agent audit</h3><div class="chips"><span class="chip ${rep.bruin ? 'ok' : ''}">Source: ${esc(rep.source)}</span></div>
+  out.innerHTML = `<h3><svg class="dd" aria-hidden="true"><use href="#d-receipt"/></svg> Agent audit</h3><div class="chips"><span class="chip ${rep.bruin ? 'ok' : ''}">Source: ${esc(rep.source)}</span></div>
     <div class="tablewrap"><table><tr>${cols.map((c) => `<th>${label[c] || c}</th>`).join('')}</tr>
     ${rep.rows.map((r) => `<tr>${cols.map((c) => `<td>${esc(r[c])}</td>`).join('')}</tr>`).join('')}</table></div>`;
 }
@@ -342,7 +351,7 @@ async function runTwice() {
   const sims = mode === 'online'
     ? await Promise.all([42, 7].map((s) => api(`api/sim?seed=${s}`)))
     : [42, 7].map((s) => IA.simulate(s, null, localMem));
-  out.innerHTML = `<h3>🎲 Same agents, two seeds</h3><div class="twice">${sims.map((r) => `<div>
+  out.innerHTML = `<h3><svg class="dd" aria-hidden="true"><use href="#d-dice"/></svg> Same agents, two seeds</h3><div class="twice">${sims.map((r) => `<div>
       <b class="hand" style="font-size:22px">Seed ${r.seed}</b> <span class="chip ${r.status === 'won' ? 'ok' : 'bad'}">${r.status === 'won' ? 'Guardians win' : 'Smog Baron wins'} · planet ${r.avg}</span>
       ${spark(r.hist, r.status === 'won' ? '#5fae67' : '#d65a5a')}
       <div class="small muted">Planet health over ${r.ticks} ticks (dashed line = 50 to win)</div>
@@ -374,10 +383,10 @@ TABS.go = {
   html() {
     return `<p class="small">Real-life actions heal the world 2× more with a photo. The photo stays on your phone.</p>
       <div id="quests"></div>
-      <button class="hunt-card" id="huntB"><span class="hunt-emoji">🗺️</span><span><b>Litter Hunt</b><small>Walk 150 m, bin the litter you find, snap a photo. Ripplet cleans the ocean for every piece.</small></span><span class="btn">Start</span></button>
-      <h3>🌍 Do something real</h3>
+      <button class="hunt-card" id="huntB"><span class="hunt-emoji"><svg class="dd" aria-hidden="true"><use href="#d-map"/></svg></span><span><b>Litter Hunt</b><small>Walk 150 m, bin the litter you find, snap a photo. Ripplet cleans the ocean for every piece.</small></span><span class="btn">Start</span></button>
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-planet"/></svg> Do something real</h3>
       <div class="acts">${ACTIONS.map((a) => `<button class="act" data-a="${a.id}"><b>${a.label}</b><small>${a.tip}</small></button>`).join('')}</div>
-      <h3>♻️ Bin Buddy</h3>
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-recycle"/></svg> Bin Buddy</h3>
       <p class="small muted">Not sure where something goes? Type it.</p>
       <input type="search" id="binIn" placeholder="e.g. battery, pizza box, old phone" autocomplete="off">
       <div id="binOut"></div>`;
@@ -389,7 +398,7 @@ TABS.go = {
     const sig = qs.map((q) => q.id).join();
     if (el.dataset.sig === sig) return;
     el.dataset.sig = sig;
-    el.innerHTML = qs.length ? '<h3>⭐ Quests for you</h3>' + qs.map((q) => `<div class="quest-card"><img src="${faceURL(IA.AG[q.from], 96)}" alt="">
+    el.innerHTML = qs.length ? '<h3><svg class="dd" aria-hidden="true"><use href="#d-star"/></svg> Quests for you</h3>' + qs.map((q) => `<div class="quest-card"><img src="${faceURL(IA.AG[q.from], 96)}" alt="">
       <div><b>${esc(IA.AG[q.from].name)}:</b> ${esc(q.text)}<div class="small muted">${esc(q.line)}</div>
       <button class="btn" style="margin-top:6px;min-height:38px;padding:8px 14px" data-q="${esc(q.kind)}">I did it</button></div></div>`).join('') : '';
     el.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => doQuest(b.dataset.q)));
@@ -456,7 +465,7 @@ function binBuddy(q) {
 // ------------------------------------------------------------------ Feed
 TABS.feed = {
   title: 'Feed',
-  html() { return '<div id="news"></div><div id="pc"></div><h3>🏘️ On your street</h3><div id="street"></div>'; },
+  html() { return '<div id="news"></div><div id="pc"></div><h3><svg class="dd" aria-hidden="true"><use href="#d-street"/></svg> On your street</h3><div id="street"></div>'; },
   async mount() {
     const street = W.log.filter((e) => ['human', 'quest', 'thank', 'betray', 'end'].includes(e.k)).slice(-25).reverse();
     $('#street').innerHTML = street.map((e) => `<div class="post"><div class="tag">${e.agent === 'human' ? 'Neighbor' : esc(name(e.agent))} · ${new Date(e.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
@@ -488,11 +497,11 @@ TABS.neighbors = {
   title: 'Neighbors',
   html() {
     return `<p class="small">Everyone on this server shares one planet.</p><div id="people"></div>
-      <h3>📨 Invite someone</h3>
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-mail"/></svg> Invite someone</h3>
       <div class="box small">Same wifi? Open <b>${esc(location.origin)}</b> on another phone, then Share → Add to Home Screen.</div>
       <div class="row"><button class="btn ghost" id="shareB"><svg class="ic"><use href="#i-link"/></svg>Share link</button>
       <a class="btn ghost" href="https://teamily.ai" target="_blank" rel="noopener">Open the Maple St group in Teamily</a></div>
-      <h3>💬 The street's BAND room</h3>
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-chat"/></svg> The street's BAND room</h3>
       <div class="box small">${HEALTH.band && HEALTH.band.ok
         ? `The agents post their alliances, betrayals and council meetings into the BAND room, and you can steer them from there. Mention <b>Impact World</b> with <b>status</b>, <b>rally ocean</b> (or forest, ice, desert, space), <b>budget</b> or <b>report</b>. A rally changes the planet for everyone. <div class="muted" style="margin-top:4px">${esc(HEALTH.band.detail)}</div>`
         : 'BAND is not connected on this server yet.'}</div>
@@ -503,8 +512,8 @@ TABS.neighbors = {
     if (!el) return;
     const ps = Object.values(W.players).sort((a, b) => (b.seen || 0) - (a.seen || 0));
     const hunters = ps.filter((p) => p.hunt && p.hunt.hunts).sort((a, b) => (b.hunt.pieces * 50 + b.hunt.meters) - (a.hunt.pieces * 50 + a.hunt.meters));
-    const board = hunters.length ? `<h3>🗺️ Top Litter Hunters</h3>` + hunters.slice(0, 5).map((p, i) => `<div class="li"><span>${['🥇', '🥈', '🥉'][i] || '·'} ${esc(p.name)}${me && p.id === me.id ? ' (you)' : ''}<small>${p.hunt.hunts} hunt${p.hunt.hunts === 1 ? '' : 's'} · ${p.hunt.meters} m walked (GPS)${p.streak ? ` · 🔥 ${p.streak}-day streak` : ''}</small></span><b>${p.hunt.pieces} pcs</b></div>`).join('') : '';
-    el.innerHTML = board + `<h3>🏠 Live on your street (${ps.length})</h3>` + (ps.map((p) => {
+    const board = hunters.length ? `<h3><svg class="dd" aria-hidden="true"><use href="#d-map"/></svg> Top Litter Hunters</h3>` + hunters.slice(0, 5).map((p, i) => `<div class="li"><span>${['<svg class="dd" style="color:#f6c453" aria-hidden="true"><use href="#d-medal"/></svg>', '<svg class="dd" style="color:#c9d3e6" aria-hidden="true"><use href="#d-medal"/></svg>', '<svg class="dd" style="color:#e8a878" aria-hidden="true"><use href="#d-medal"/></svg>'][i] || '·'} ${esc(p.name)}${me && p.id === me.id ? ' (you)' : ''}<small>${p.hunt.hunts} hunt${p.hunt.hunts === 1 ? '' : 's'} · ${p.hunt.meters} m walked (GPS)${p.streak ? ` · <svg class="dd" aria-hidden="true"><use href="#d-flame"/></svg> ${p.streak}-day streak` : ''}</small></span><b>${p.hunt.pieces} pcs</b></div>`).join('') : '';
+    el.innerHTML = board + `<h3><svg class="dd" aria-hidden="true"><use href="#d-house"/></svg> Live on your street (${ps.length})</h3>` + (ps.map((p) => {
       const recent = Date.now() - (p.seen || 0) < 5 * 60000;
       return `<div class="entry human"><img src="${faceURL(BUDDIES.find((b) => b.id === p.av) || BUDDIES[0], 80)}" alt=""><div>
         <b>${esc(p.name)}</b>${me && p.id === me.id ? ' (you)' : ''} <span class="chip ${recent ? 'ok' : ''}">${recent ? 'active now' : 'seen ' + new Date(p.seen).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
@@ -589,13 +598,14 @@ TABS.me = {
       <div class="chips">${Object.entries(p).map(([k, v]) => `<span class="chip">${esc(k)}: ${esc(v)}</span>`).join('')}</div>
       <div class="row"><button class="btn ghost" id="quizB">Redo my profile</button>
       <button class="btn ghost" id="voiceB"><svg class="ic"><use href="#i-sound"/></svg>Agent voices: ${voiceOn ? 'on' : 'off'}</button></div>
-      <h3>🔧 How Impact works</h3>
+      <details class="receipts"><summary>How Impact works (for judges): sponsors, data, honesty</summary>
+      <h3>How Impact works</h3>
       <p class="small">Every ${Math.round(tickMs / 1000)} s each agent scores its options (goal gap × live air data × trust + seeded personality + what it learned in earlier runs) and picks the best. Your real actions heal zones; the Baron avoids zones humans are watching, and guardians ask you for help using your profile.</p>
       <div id="spons"></div>
-      <h3>📏 Data honesty</h3>
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-ruler"/></svg> Data honesty</h3>
       <ul class="small"><li>Air data: live Open-Meteo PM2.5, temperature, humidity for 4 LA places, through the Bruin pipeline (or a labeled snapshot).</li>
       <li>Footprint numbers are rough estimates.</li><li>Photos stay on your device and are not verified by AI.</li>
-      <li>Sponsors turn green only after a real call worked on this server.</li></ul>`;
+      <li>Sponsors turn green only after a real call worked on this server.</li></ul></details>`;
   },
   live() {
     const el = $('#spons');
@@ -616,10 +626,10 @@ TABS.me = {
 
 // ------------------------------------------------------------------ onboarding
 const QUIZ = [
-  ['move', 'How do you usually get around?', [['car', '🚗 Car, mostly'], ['transit', '🚌 Bus or train'], ['walk', '🚲 Walk or bike']]],
-  ['eat', 'What do you eat most?', [['meat', '🍔 Meat most days'], ['mixed', '🥗 A mix'], ['plant', '🌱 Mostly plants']]],
-  ['waste', 'What do you throw away most?', [['bottles', '🧴 Plastic bottles'], ['takeout', '🥡 Takeout containers'], ['clothes', '👕 Clothes I stop wearing'], ['food', '🍎 Food']]],
-  ['home', 'Where do you live?', [['apartment', '🏢 Apartment'], ['house', '🏠 House']]],
+  ['move', 'How do you usually get around?', [['car', '<svg class="dd" aria-hidden="true"><use href="#d-car"/></svg> Car, mostly'], ['transit', '<svg class="dd" aria-hidden="true"><use href="#d-bus"/></svg> Bus or train'], ['walk', '<svg class="dd" aria-hidden="true"><use href="#d-bike"/></svg> Walk or bike']]],
+  ['eat', 'What do you eat most?', [['meat', '<svg class="dd" aria-hidden="true"><use href="#d-burger"/></svg> Meat most days'], ['mixed', '<svg class="dd" aria-hidden="true"><use href="#d-salad"/></svg> A mix'], ['plant', '<svg class="dd" aria-hidden="true"><use href="#d-sprout"/></svg> Mostly plants']]],
+  ['waste', 'What do you throw away most?', [['bottles', '<svg class="dd" aria-hidden="true"><use href="#d-bottle"/></svg> Plastic bottles'], ['takeout', '<svg class="dd" aria-hidden="true"><use href="#d-takeout"/></svg> Takeout containers'], ['clothes', '<svg class="dd" aria-hidden="true"><use href="#d-shirt"/></svg> Clothes I stop wearing'], ['food', '<svg class="dd" aria-hidden="true"><use href="#d-apple"/></svg> Food']]],
+  ['home', 'Where do you live?', [['apartment', '<svg class="dd" aria-hidden="true"><use href="#d-office"/></svg> Apartment'], ['house', '<svg class="dd" aria-hidden="true"><use href="#d-house"/></svg> House']]],
 ];
 function welcome() {
   let pick = BUDDIES[0].id;
@@ -710,11 +720,11 @@ TABS.today = {
           <div class="cbar"><i style="width:${Math.min(100, (v / bb) * 100)}%;background:${v > bb ? '#e0786a' : col}"></i></div>
           <div class="small muted"><b>${IA.AG[ag].name}:</b> ${esc(agentLine(ag))}</div></div></div>`;
       }).join('')}
-      ${openQuests().length ? `<h3>⭐ Missions for you</h3>${openQuests().map((q) => `<div class="quest-card"><img src="${faceURL(IA.AG[q.from], 96)}" alt=""><div><b>${esc(IA.AG[q.from].name)}:</b> ${esc(q.text)}<div class="small muted">“${esc(q.line)}”</div><button class="btn" style="margin-top:6px;min-height:38px;padding:8px 14px" data-qk="${esc(q.kind)}">Do it</button></div></div>`).join('')}` : ''}
-      ${council.length ? `<h3>🏛️ Latest council decisions</h3>${council.map(entryHTML).join('')}` : ''}
-      <h3>📒 Today's log</h3>${L.items.length ? L.items.slice().reverse().map((x) => `<div class="li"><span>${esc(x.label)}<small>${esc(x.src || '')}</small></span><b>${x.cat === 'water' ? Math.round(x.liters) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.kg ? x.kg.toFixed(2) + ' kg' : x.cat === 'stuff' ? 'item' : '·'}</b></div>`).join('') : '<p class="small muted">Log your first thing: the agents react on their next tick.</p>'}
-      <h3>📊 Street footprint history</h3><div id="footOut">${FOOT ? footTable(FOOT) : '<p class="small muted">Loading…</p>'}</div>
-      <div class="row" style="margin-top:12px"><button class="btn" id="tdHunt">🗺️ Litter Hunt</button><button class="btn ghost" id="tdGo">More real actions</button><button class="btn ghost" id="tdPlay">Smog Pop</button><button class="btn ghost" id="tdFeed">Feed &amp; news</button></div>`;
+      ${openQuests().length ? `<h3><svg class="dd" aria-hidden="true"><use href="#d-star"/></svg> Missions for you</h3>${openQuests().map((q) => `<div class="quest-card"><img src="${faceURL(IA.AG[q.from], 96)}" alt=""><div><b>${esc(IA.AG[q.from].name)}:</b> ${esc(q.text)}<div class="small muted">“${esc(q.line)}”</div><button class="btn" style="margin-top:6px;min-height:38px;padding:8px 14px" data-qk="${esc(q.kind)}">Do it</button></div></div>`).join('')}` : ''}
+      ${council.length ? `<h3><svg class="dd" aria-hidden="true"><use href="#d-columns"/></svg> Latest council decisions</h3>${council.map(entryHTML).join('')}` : ''}
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-notebook"/></svg> Today's log</h3>${L.items.length ? L.items.slice().reverse().map((x) => `<div class="li"><span>${esc(x.label)}<small>${esc(x.src || '')}</small></span><b>${x.cat === 'water' ? Math.round(x.liters) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.kg ? x.kg.toFixed(2) + ' kg' : x.cat === 'stuff' ? 'item' : '·'}</b></div>`).join('') : '<p class="small muted">Log your first thing: the agents react on their next tick.</p>'}
+      <h3><svg class="dd" aria-hidden="true"><use href="#d-chart"/></svg> Street footprint history</h3><div id="footOut">${FOOT ? footTable(FOOT) : '<p class="small muted">Loading…</p>'}</div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="tdHunt"><svg class="dd" aria-hidden="true"><use href="#d-map"/></svg> Litter Hunt</button><button class="btn ghost" id="tdGo">More real actions</button><button class="btn ghost" id="tdPlay">Smog Pop</button><button class="btn ghost" id="tdFeed">Feed &amp; news</button></div>`;
   },
   live() { const sc = $('#sheetB').scrollTop; $('#sheetB').innerHTML = this.html(); this.wire(); $('#sheetB').scrollTop = sc; },
   mount() { this.wire(); loadFoot(); },
@@ -749,14 +759,14 @@ function doQuest(kind) {
 
 // ------------------------------------------------------------------ composer: quick logging with live, cited math
 const QL = {
-  food: [['🥩', 'Beef meal', { kind: 'meal', food: 'beef' }], ['🍗', 'Chicken meal', { kind: 'meal', food: 'chicken' }], ['🐟', 'Fish meal', { kind: 'meal', food: 'fish' }],
-    ['🥚', 'Eggs', { kind: 'meal', food: 'eggs' }], ['🥗', 'Tofu meal', { kind: 'meal', food: 'tofu' }], ['🫘', 'Beans / veggie meal', { kind: 'meal', food: 'beans' }],
-    ['🗑️', 'Threw out leftovers (meat, 300 g)', { kind: 'food_waste', food: 'chicken', kg: 0.3 }], ['🗑️', 'Threw out leftovers (veg, 300 g)', { kind: 'food_waste', food: 'potatoes', kg: 0.3 }]],
-  travel: [['🚗', 'Drove', { kind: 'drive' }, 'km', 10], ['⛽', 'Filled up gas', { kind: 'gas' }, 'gal', 8], ['🚲', 'Walked/biked instead', { kind: 'walk' }, 'km', 3],
-    ['🔌', 'Electricity (from bill)', { kind: 'kwh' }, 'kWh', 10], ['🔥', 'Natural gas (from bill)', { kind: 'therm' }, 'therms', 2]],
-  water: [['🚿', 'Shower', { kind: 'shower' }, 'min', 8], ['🧺', 'Laundry load', { kind: 'laundry', qty: 1 }]],
-  stuff: [['🧴', 'Plastic bottle', { kind: 'bottle', qty: 1 }], ['🥡', 'Takeout container', { kind: 'takeout', qty: 1 }], ['👕', 'Bought new clothes', { kind: 'new_clothes', qty: 1 }],
-    ['🗑️', 'Trash bag out', { kind: 'trash', qty: 1 }], ['🙅', 'Refused a single-use item', { kind: 'refuse', qty: 1 }]],
+  food: [['<svg class="dd" aria-hidden="true"><use href="#d-meat"/></svg>', 'Beef meal', { kind: 'meal', food: 'beef' }], ['<svg class="dd" aria-hidden="true"><use href="#d-drumstick"/></svg>', 'Chicken meal', { kind: 'meal', food: 'chicken' }], ['<svg class="dd" aria-hidden="true"><use href="#d-fish"/></svg>', 'Fish meal', { kind: 'meal', food: 'fish' }],
+    ['<svg class="dd" aria-hidden="true"><use href="#d-egg"/></svg>', 'Eggs', { kind: 'meal', food: 'eggs' }], ['<svg class="dd" aria-hidden="true"><use href="#d-salad"/></svg>', 'Tofu meal', { kind: 'meal', food: 'tofu' }], ['<svg class="dd" aria-hidden="true"><use href="#d-beans"/></svg>', 'Beans / veggie meal', { kind: 'meal', food: 'beans' }],
+    ['<svg class="dd" aria-hidden="true"><use href="#d-bin"/></svg>', 'Threw out leftovers (meat, 300 g)', { kind: 'food_waste', food: 'chicken', kg: 0.3 }], ['<svg class="dd" aria-hidden="true"><use href="#d-bin"/></svg>', 'Threw out leftovers (veg, 300 g)', { kind: 'food_waste', food: 'potatoes', kg: 0.3 }]],
+  travel: [['<svg class="dd" aria-hidden="true"><use href="#d-car"/></svg>', 'Drove', { kind: 'drive' }, 'km', 10], ['<svg class="dd" aria-hidden="true"><use href="#d-fuel"/></svg>', 'Filled up gas', { kind: 'gas' }, 'gal', 8], ['<svg class="dd" aria-hidden="true"><use href="#d-bike"/></svg>', 'Walked/biked instead', { kind: 'walk' }, 'km', 3],
+    ['<svg class="dd" aria-hidden="true"><use href="#d-plug"/></svg>', 'Electricity (from bill)', { kind: 'kwh' }, 'kWh', 10], ['<svg class="dd" aria-hidden="true"><use href="#d-flame"/></svg>', 'Natural gas (from bill)', { kind: 'therm' }, 'therms', 2]],
+  water: [['<svg class="dd" aria-hidden="true"><use href="#d-shower"/></svg>', 'Shower', { kind: 'shower' }, 'min', 8], ['<svg class="dd" aria-hidden="true"><use href="#d-basket"/></svg>', 'Laundry load', { kind: 'laundry', qty: 1 }]],
+  stuff: [['<svg class="dd" aria-hidden="true"><use href="#d-bottle"/></svg>', 'Plastic bottle', { kind: 'bottle', qty: 1 }], ['<svg class="dd" aria-hidden="true"><use href="#d-takeout"/></svg>', 'Takeout container', { kind: 'takeout', qty: 1 }], ['<svg class="dd" aria-hidden="true"><use href="#d-shirt"/></svg>', 'Bought new clothes', { kind: 'new_clothes', qty: 1 }],
+    ['<svg class="dd" aria-hidden="true"><use href="#d-bin"/></svg>', 'Trash bag out', { kind: 'trash', qty: 1 }], ['<svg class="dd" aria-hidden="true"><use href="#d-nope"/></svg>', 'Refused a single-use item', { kind: 'refuse', qty: 1 }]],
 };
 let PEND = [];
 const lineAmount = (x) => (x.cat === 'water' ? Math.round(x.liters || 0) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.cat === 'stuff' ? (x.items || 0) + ' item' : (x.kg || 0).toFixed(2) + ' kg');
@@ -851,9 +861,9 @@ function metersBetween(a, b) {
 function litterHunt() {
   if (!me) return;
   const gpsOk = 'geolocation' in navigator && window.isSecureContext;
-  modal(`<div class="hunt-hero">🗺️</div><h2>Litter Hunt</h2>
+  modal(`<div class="hunt-hero"><svg class="dd" aria-hidden="true"><use href="#d-map"/></svg></div><h2>Litter Hunt</h2>
     <p class="muted">Walk at least ${HUNT_GOAL_M} m around your block. Every time you bin a piece of litter, tap <b>Binned one</b> and snap a photo. Ripplet cleans the ocean for everyone on your street.</p>
-    <div class="hunt-rules small"><span>🚶 ${HUNT_GOAL_M} m walk: Ocean +2</span><span>🗑️ each piece with a photo: +0.8</span><span>⭐ completes Ripplet's mission</span></div>
+    <div class="hunt-rules small"><span><svg class="dd" aria-hidden="true"><use href="#d-walk"/></svg> ${HUNT_GOAL_M} m walk: Ocean +2</span><span><svg class="dd" aria-hidden="true"><use href="#d-bin"/></svg> each piece with a photo: +0.8</span><span><svg class="dd" aria-hidden="true"><use href="#d-star"/></svg> completes Ripplet's mission</span></div>
     ${gpsOk ? '' : `<p class="small hunt-warn">GPS needs a secure (https) link, so it's off on this connection. You can still hunt on your honor: litter counts, the walk counts less.</p>`}
     <div class="row" style="justify-content:center"><button class="btn" id="huntGo">${gpsOk ? 'Start walking' : 'Start (honor mode)'}</button><button class="btn ghost" data-close>Not now</button></div>
     <p class="small muted">Your location stays on this phone. Only the distance is sent. Photos stay on this phone too.</p>`);
@@ -887,7 +897,7 @@ function drawHunt() {
     <div class="hunt-meter"><b>${Math.round(HUNT.meters)}</b><span>of ${HUNT_GOAL_M} m${HUNT.watch ? '' : ' (no GPS)'}</span></div>
     <div class="cbar" style="height:14px"><i style="width:${pct}%;background:var(--sea)"></i></div>
     <p class="small muted">${HUNT.err ? esc(HUNT.err) : HUNT.watch ? (HUNT.gps ? `Tracking your walk · ${mins} min` : 'Waiting for GPS… step outside') : 'Honor mode: walk your block, then finish.'}</p>
-    <div class="hunt-count">🗑️ ${HUNT.pieces} binned · 📷 ${HUNT.photos} photo${HUNT.photos === 1 ? '' : 's'}</div>
+    <div class="hunt-count"><svg class="dd" aria-hidden="true"><use href="#d-bin"/></svg> ${HUNT.pieces} binned · <svg class="dd" aria-hidden="true"><use href="#d-camera"/></svg> ${HUNT.photos} photo${HUNT.photos === 1 ? '' : 's'}</div>
     <label class="btn wide" style="margin:6px 0"><svg class="ic"><use href="#i-camera"/></svg>Binned one (snap it)<input type="file" accept="image/*" capture="environment" id="huntPhoto" hidden></label>
     <button class="btn ghost wide" id="huntNoPhoto">Binned one (no photo)</button>
     <div class="row" style="justify-content:center;margin-top:8px"><button class="btn" id="huntDone" ${canFinish ? '' : 'disabled'}>Finish hunt</button><button class="btn ghost" id="huntQuit">Cancel</button></div>`);
@@ -905,9 +915,182 @@ async function finishHunt() {
   let entry = null;
   if (mode === 'online') { const r = await api('api/act', { id: me.id, act }).catch(() => null); entry = r && r.entry; }
   else { entry = IA.human(W, me.id, act, false); receive(W); }
-  modal(`<div class="hunt-hero">🌊</div><h2>Hunt complete!</h2>
+  modal(`<div class="hunt-hero"><svg class="dd" aria-hidden="true"><use href="#d-wave"/></svg></div><h2>Hunt complete!</h2>
     <p><b>${h.gps ? `${h.meters} m walked` : 'Walk done (honor)'} · ${h.pieces} piece${h.pieces === 1 ? '' : 's'} binned</b></p>
     <p class="muted">${entry ? esc(entry.why) : 'Saved.'}</p>
     <p class="small muted">Ripplet will react on the next tick. Check the Street tab for the leaderboard.</p>
     <button class="btn wide" data-close>Back to the planet</button>`);
+}
+
+// ------------------------------------------------------------------ THE GAME LAYER: showdowns, characters, story
+const dd = (n, cls = '') => `<svg class="dd ${cls}" aria-hidden="true"><use href="#d-${n}"/></svg>`;
+const mySeeds = () => { const p = me && W && W.players[me.id]; return p ? (p.seeds == null ? 10 : p.seeds) : 0; };
+let showDismissed = '';
+let lastResult = null;   // { id, text, good } for the showdown result card
+let seenFoxDecision = 0;
+
+async function back(kind, amount, target) {
+  if (!me) return null;
+  if (mode !== 'online') {
+    const r = IA.back(W, me.id, kind, amount, target);
+    if (r.error) toast(r.error); else receive(W);
+    return r;
+  }
+  const r = await fetch('api/back', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: me.id, kind, amount, target }) }).then((x) => x.json()).catch(() => ({ error: 'Could not reach the server' }));
+  if (r.error) toast(r.error, 3500);
+  return r;
+}
+
+// a card that floats over the planet whenever something needs you
+function renderShow() {
+  const el = $('#show');
+  if (!W || !me || openTab || !$('#modal').hidden) { el.hidden = true; return; }
+  const seeds = mySeeds();
+  let html = '', key = '';
+  // 1) Sunfox just decided: show what happened
+  const dec = W.log.filter((e) => e.agent === 'sunfox' && /BETRAYED|refused the Baron/.test(e.act)).slice(-1)[0];
+  if (dec && dec.id > seenFoxDecision && Date.now() - dec.t < 15000) {
+    const good = /refused/.test(dec.act);
+    key = 'res' + dec.id;
+    html = `<div class="show-card ${good ? 'good' : 'bad'}"><img src="${faceURL(IA.AG.sunfox, 96)}" alt="">
+      <div><b class="show-h">${good ? 'Sunfox stayed loyal!' : 'Sunfox BETRAYED everyone!'}</b>
+      <span class="show-sub">${good ? (/thanks to/.test(dec.act) ? 'Your street outbid the Baron. The guardians cheer.' : 'He turned the Baron down.') : 'He took the Baron\'s seeds and leaked the weakest zone. Get revenge: shield it before the Baron strikes.'}</span>
+      ${good ? '' : `<div class="show-btns"><button class="btn" data-back="shield" data-amt="5" ${seeds < 5 ? 'disabled' : ''}>${dd('shield')} Shield it +5</button><button class="btn ghost" data-hunt>${dd('map')} Earn seeds</button></div>`}</div>
+      <button class="x" data-dismiss aria-label="Close">✕</button></div>`;
+    if (good && dec.act.includes('humans') && !confetti.done?.[dec.id]) { confetti(); (confetti.done = confetti.done || {})[dec.id] = 1; }
+  } else if (W.offer) {
+    // 2) live bribe showdown
+    const left = Math.max(0, IA.OFFER_WAIT - (W.tick - W.offer.tick));
+    const out = W.offer.outbid || 0;
+    key = 'bribe' + W.offer.tick;
+    html = `<div class="show-card hot"><img src="${faceURL(IA.AG.baron, 96)}" alt="">
+      <div><b class="show-h">${dd('hat')} The Baron is bribing Sunfox!</b>
+      <span class="show-sub">Baron offers <b>${W.offer.amount}</b> seeds · your street: <b>${out}</b> · Sunfox decides ${left ? `in ${left} tick${left === 1 ? '' : 's'}` : 'now'}</span>
+      <div class="show-bar"><i style="width:${Math.min(100, (out / Math.max(1, W.offer.amount + out)) * 100)}%"></i></div>
+      <div class="show-btns"><button class="btn" data-back="outbid" data-amt="5" ${seeds < 5 ? 'disabled' : ''}>${dd('sprout')} Outbid +5</button><button class="btn" data-back="outbid" data-amt="15" ${seeds < 15 ? 'disabled' : ''}>Outbid +15</button><span class="show-seeds">${dd('sprout')} ${seeds}</span></div></div></div>`;
+  } else if (W.threat && W.agents.find((a) => a.id === 'baron').energy >= 12 && W.H[W.threat.zone] < 45) {
+    // 3) the Baron is eyeing a weak zone: shield it
+    const z = W.threat.zone, sh = (W.shield || {})[z] || 0;
+    key = 'threat' + z;
+    html = `<div class="show-card warn"><img src="${faceURL(IA.AG.baron, 96)}" alt="">
+      <div><b class="show-h">The Baron is eyeing the ${ZN[z]}!</b>
+      <span class="show-sub">${ZN[z]} is at <b>${Math.round(W.H[z])}</b>. Shield it so his next attack bounces off${sh ? ` (shield ${sh})` : ''}.</span>
+      <div class="show-btns"><button class="btn" data-back="shield" data-amt="5" data-target="${z}" ${seeds < 5 ? 'disabled' : ''}>${dd('shield')} Shield +5</button><button class="btn ghost" data-hunt>${dd('map')} Earn seeds: Litter Hunt</button><span class="show-seeds">${dd('sprout')} ${seeds}</span></div></div>
+      <button class="x" data-dismiss aria-label="Close">✕</button></div>`;
+  } else {
+    // 4) your next mission
+    const q = openQuests()[0];
+    if (q) {
+      key = 'q' + q.id;
+      html = `<div class="show-card"><img src="${faceURL(IA.AG[q.from], 96)}" alt="">
+        <div><b class="show-h">${esc(IA.AG[q.from].name)}: “${esc(q.text)}”</b><span class="show-sub">${esc(q.line)}</span>
+        <div class="show-btns"><button class="btn" data-quest="${esc(q.kind)}">Let's go</button><span class="show-seeds">+5 ${dd('sprout')}</span></div></div>
+        <button class="x" data-dismiss aria-label="Close">✕</button></div>`;
+    }
+  }
+  if (!html || key === showDismissed) { el.hidden = true; return; }
+  if (el.dataset.key === key && el.dataset.seeds === String(seeds) && el.dataset.tick === String(W.tick) && !el.hidden) return;
+  el.dataset.key = key; el.dataset.seeds = seeds; el.dataset.tick = W.tick;
+  el.innerHTML = html;
+  el.hidden = false;
+  el.querySelectorAll('[data-back]').forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    const r = await back(b.dataset.back, +b.dataset.amt, b.dataset.target);
+    if (r && !r.error) { toast(b.dataset.back === 'outbid' ? 'Seeds sent! Sunfox is thinking…' : 'Shield up!'); globe.say(b.dataset.back === 'outbid' ? 'sunfox' : 'mossling', b.dataset.back === 'outbid' ? 'Ooh… tempting!' : 'Nice shield!'); }
+  }));
+  el.querySelectorAll('[data-dismiss]').forEach((b) => (b.onclick = () => { showDismissed = key; if (key.startsWith('res')) seenFoxDecision = +key.slice(3); el.hidden = true; }));
+  el.querySelectorAll('[data-quest]').forEach((b) => (b.onclick = () => doQuest(b.dataset.quest)));
+  el.querySelectorAll('[data-hunt]').forEach((b) => (b.onclick = litterHunt));
+}
+
+// tap a character on the planet
+function openAgent(id) {
+  const d = IA.AG[id], a = W && W.agents.find((x) => x.id === id);
+  if (!d || !a) return;
+  const trustYou = me ? a.trust['h_' + me.id] || 0 : 0;
+  const mood = a.energy < 25 ? 'exhausted' : id === 'baron' ? 'scheming' : d.type === 'guardian' && W.H[d.goal] < 35 ? 'worried' : 'happy';
+  const want = d.type === 'guardian' ? `${ZN[d.goal]} back above 70 (now ${Math.round(W.H[d.goal])})` : id === 'sunfox' ? `more seeds (has ${a.seeds})` : 'the planet below 30';
+  const seeds = mySeeds();
+  const ally = a.ally && a.allyUntil > W.tick ? IA.AG[a.ally].name : null;
+  modal(`<img class="big-av" src="${faceURL(d, 160)}" alt=""><h2>${d.name}</h2>
+    <div class="chips" style="justify-content:center"><span class="chip">${d.role}</span><span class="chip">${mood}</span><span class="chip">energy ${a.energy}</span>${ally ? `<span class="chip ok">allied with ${ally}</span>` : ''}</div>
+    <p><b>Wants:</b> ${want}</p>
+    <p class="muted">${esc(a.last ? 'Just now: ' + a.last : d.bio)}</p>
+    <p class="small">Trusts you: <b>${trustYou > 0.5 ? 'a lot' : trustYou > 0 ? 'a little' : 'not yet'}</b></p>
+    ${id === 'baron'
+      ? `<div class="show-btns" style="justify-content:center"><button class="btn" id="agShield" ${seeds < 5 || !W.threat ? 'disabled' : ''}>${dd('shield')} Shield ${W.threat ? ZN[W.threat.zone] : ''} +5</button></div>`
+      : `<div class="show-btns" style="justify-content:center"><button class="btn" id="agMission">${dd('star')} Give me a mission</button><button class="btn ghost" id="agGift" ${seeds < 5 ? 'disabled' : ''}>${dd('gift')} Give 5 seeds</button></div>`}
+    <p class="small muted">You have ${seeds} seeds. Earn more by doing real things: Litter Hunts, logging good swaps, missions.</p>`);
+  const s = $('#agShield'), m = $('#agMission'), g = $('#agGift');
+  if (s) s.onclick = async () => { const r = await back('shield', 5, W.threat.zone); if (r && !r.error) { closeModal(); toast('Shield up!'); } };
+  if (g) g.onclick = async () => { const r = await back('gift', 5, id); if (r && !r.error) { closeModal(); globe.say(id, `Thank you ${me.name}!!`); toast(`${d.name} loves you a bit more`); } };
+  if (m) m.onclick = async () => {
+    const r = await back('mission', 0, id);
+    if (r && r.quest) { closeModal(); globe.say(id, `${me.name}! I need you!`); doQuest(r.quest.kind); }
+  };
+}
+
+// agents shout your name when you help
+let cheeredUpTo = 0;
+function cheerMe(S) {
+  if (!me) return;
+  if (!cheeredUpTo) { cheeredUpTo = S.seq; return; }
+  for (const e of S.log) {
+    if (e.id <= cheeredUpTo) continue;
+    if (e.agent === 'human' && e.who === me.id && /Completed (\w+)'s quest/.test(e.why)) {
+      const name = /Completed (\w+)'s quest/.exec(e.why)[1];
+      const ag = IA.AGENTS.find((x) => x.name === name);
+      if (ag) globe.say(ag.id, `YOU DID IT, ${me.name.toUpperCase()}!`);
+      confetti();
+    } else if (e.agent === 'human' && e.who === me.id && /Litter Hunt/.test(e.act)) {
+      globe.say('ripplet', `Woo! Thanks ${me.name}!`); confetti();
+    } else if (e.k === 'thank' && e.target === 'h_' + me.id) {
+      globe.say(e.agent, `${me.name}, you're a legend!`);
+    }
+  }
+  cheeredUpTo = S.seq;
+}
+
+// the story: a few big moments, not a log
+function storyHTML() {
+  const pick = W.log.filter((e) => ['betray', 'ally', 'fight', 'council', 'end', 'thank', 'quest', 'learn'].includes(e.k) && e.agent !== 'world' || e.k === 'end' || (e.k === 'human' && /outbid|shield|Litter Hunt/.test(e.act)))
+    .filter((e) => !/rested|is thinking/.test(e.act))
+    .slice(-40).reverse();
+  const seen = new Set();
+  const moments = [];
+  for (const e of pick) {
+    const k = e.agent + e.k;
+    if (seen.has(k) && moments.length > 3) continue;
+    seen.add(k);
+    moments.push(e);
+    if (moments.length >= 8) break;
+  }
+  const headline = (e) => {
+    const who = e.agent === 'human' ? (W.players[e.who] || {}).name || 'Someone' : name(e.agent);
+    const act = e.agent === 'human' ? e.act.replace(/^[^:]+: /, '') : e.act;
+    return `<b>${esc(who)}</b> ${esc(act.replace(/\s*\([^)]*\)/g, ''))}`;
+  };
+  const tone = (e) => /BETRAY|polluted|offered Sunfox|flash sale/.test(e.act) ? 'bad' : /refused|alliance|thanked|cheered|outbid|shield|Litter|WIN/.test(e.act) ? 'good' : '';
+  const avg = Math.round(IA.avgH(W));
+  return `<div class="story-top"><div><b class="hand" style="font-size:28px">Run ${W.seed}</b><div class="small muted">tick ${Math.min(W.tick, IA.ROUND)} of ${IA.ROUND} · planet ${avg}/100 · ${avg >= 50 ? 'guardians are winning' : 'the Baron is winning'}</div></div>
+    <div class="story-meter"><i style="width:${avg}%"></i></div></div>
+    <div class="story">${moments.map((e) => `<div class="moment ${tone(e)}"><img src="${e.agent === 'human' ? faceURL(BUDDIES.find((b) => b.id === (W.players[e.who] || {}).av) || BUDDIES[0], 96) : IA.AG[e.agent] ? faceURL(IA.AG[e.agent], 96) : faceURL(BUDDIES[0], 96)}" alt="">
+      <div><div class="moment-h">${headline(e)}</div><div class="small muted">${esc((e.why || '').split('. ')[0])}</div></div></div>`).join('') || '<p class="muted">The story starts in a few seconds…</p>'}</div>`;
+}
+
+// a little celebration
+function confetti() {
+  const box = document.createElement('div');
+  box.className = 'confetti';
+  const colors = ['#f6c453', '#5fae67', '#4a9fe0', '#f28b82', '#b9a4dc'];
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('i');
+    p.style.left = Math.random() * 100 + '%';
+    p.style.background = colors[i % colors.length];
+    p.style.animationDelay = Math.random() * 0.3 + 's';
+    p.style.transform = `rotate(${Math.random() * 360}deg)`;
+    box.appendChild(p);
+  }
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 2200);
 }

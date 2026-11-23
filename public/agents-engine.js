@@ -15,6 +15,7 @@
   const ZONES = ['forest', 'ice', 'desert', 'ocean', 'space'];
   const ZONE_NAME = { forest: 'Forest', ice: 'Ice', desert: 'Desert', ocean: 'Ocean', space: 'Space' };
   const ROUND_TICKS = 120;
+  const OFFER_WAIT = 2; // ticks Sunfox thinks about a bribe: the humans' window to outbid
   const GOAL_HEALTH = 70;
 
   // ---- the carbon ledger: every player's real log feeds the agents (math lives in factors.js)
@@ -267,13 +268,17 @@
     O.push({ t: 'trade', with: fav.id, s: 0.3 + (a.trust[fav.id] + 1) / 5, why: `${BY_ID[fav.id].name} trusts it most (${fav.trust.sunfox.toFixed(2)})` });
     O.push({ t: 'hoard', s: 0.2 + (a.seeds < 20 ? 0.15 : 0), why: `only ${a.seeds} seeds and its goal is to get rich` });
 
-    if (S.offer && S.tick - S.offer.tick > 5) S.offer = null; // bribes expire
-    if (S.offer) {
-      const amt = S.offer.amount;
-      O.push({ t: 'betray', s: 0.3 + amt / 35 - trustInFox * 0.4 + (a.tr.greed - 1) * 0.5,
-        why: `the Baron offered ${amt} seeds and the guardians only trust it ${trustInFox.toFixed(2)}` });
-      O.push({ t: 'refuse', s: 0.4 + trustInFox * 0.5,
-        why: `the guardians trust it ${trustInFox.toFixed(2)}, so their friendship is worth more than ${amt} seeds` });
+    if (S.offer && S.tick - S.offer.tick > OFFER_WAIT + 4) S.offer = null; // bribes expire
+    // SHOWDOWN: Sunfox thinks for OFFER_WAIT ticks, so humans can outbid the Baron with seeds they earned in real life
+    if (S.offer && S.tick - S.offer.tick >= OFFER_WAIT) {
+      const amt = S.offer.amount, out = S.offer.outbid || 0, n = Object.keys(S.offer.backers || {}).length;
+      const humans = out ? `; ${n} human${n === 1 ? '' : 's'} put up ${out} seeds to keep it loyal` : '';
+      O.push({ t: 'betray', s: 0.3 + amt / 35 - trustInFox * 0.4 + (a.tr.greed - 1) * 0.5 - out / 25,
+        why: `the Baron offered ${amt} seeds and the guardians only trust it ${trustInFox.toFixed(2)}${humans}` });
+      O.push({ t: 'refuse', s: 0.4 + trustInFox * 0.5 + out / 25,
+        why: `the guardians trust it ${trustInFox.toFixed(2)}, so their friendship is worth more than ${amt} seeds${humans}` });
+    } else if (S.offer) {
+      O.push({ t: 'ponder', s: 2, why: `the Baron's ${S.offer.amount}-seed offer is on the table and it wants to see what the humans do` });
     }
     if (S.intel && trustInFox > 0.1) {
       O.push({ t: 'warn', s: 0.3 + trustInFox * 0.4, why: `it knows the Baron is targeting ${ZONE_NAME[S.intel]}` });
@@ -285,8 +290,10 @@
     const O = [];
     const totalAttention = ZONES.reduce((s, z) => s + S.attn[z], 0);
     // target: low health, ignored by humans, and smoggy in real life
-    const appeal = (z) => S.H[z] + S.attn[z] * 3 - sp[z].smog_pressure * 12 - (+sp[z].news_pressure || 0) * 15; // bad news = an easy target
+    S.shield = S.shield || {};
+    const appeal = (z) => S.H[z] + S.attn[z] * 3 + (S.shield[z] || 0) * 2 - sp[z].smog_pressure * 12 - (+sp[z].news_pressure || 0) * 15; // bad news = an easy target, shields scare it off
     const target = ZONES.slice().sort((x, y) => appeal(x) - appeal(y))[0];
+    S.threat = { zone: S.intel || target, tick: S.tick }; // the zone it is eyeing next (shown to every player)
 
     if (a.energy >= 12) {
       const to = S.intel || target;
@@ -452,6 +459,8 @@
         e.act = `thanked ${top ? top.name : 'the humans'} and boosted ${ZONE_NAME[z]} +2`; e.k = 'thank';
         break;
       }
+      case 'ponder':
+        e.act = `is thinking about the Baron's ${S.offer.amount}-seed bribe…`; e.k = 'betray'; e.target = 'baron'; break;
       case 'hoard':
         a.seeds += 2; e.act = 'hoarded 2 seeds'; break;
       case 'betray': {
@@ -471,7 +480,8 @@
       case 'refuse': {
         for (const b of guardians()) nudgeTrust(b, 'sunfox', 0.12);
         nudgeTrust(a, 'baron', -0.3);
-        e.act = `refused the Baron's ${S.offer.amount}-seed bribe`; e.k = 'ally'; e.target = 'baron';
+        e.act = `refused the Baron's ${S.offer.amount}-seed bribe${S.offer.outbid ? ` thanks to ${S.offer.outbid} seeds from the humans` : ''}`; e.k = 'ally'; e.target = 'baron';
+        a.seeds += S.offer.outbid || 0;
         S.offer = null;
         break;
       }
@@ -486,10 +496,14 @@
       }
       case 'pollute': {
         moveTo(S, a, o.to);
-        const dmg = 2.4 * a.tr.aggro * (1 + sp[o.to].smog_pressure * 0.6) * (S.intel === o.to ? 1.8 : 1);
+        S.shield = S.shield || {};
+        const sh = S.shield[o.to] || 0;
+        const block = Math.min(0.8, sh / 25); // humans' shield soaks up to 80% of the hit
+        const dmg = 2.4 * a.tr.aggro * (1 + sp[o.to].smog_pressure * 0.6) * (S.intel === o.to ? 1.8 : 1) * (1 - block);
+        S.shield[o.to] = Math.max(0, Math.round(sh / 2));
         S.H[o.to] = clamp(S.H[o.to] - dmg, 0, 100);
         a.energy -= 10;
-        e.act = `polluted ${ZONE_NAME[o.to]} (−${dmg.toFixed(1)})`; e.k = 'fight';
+        e.act = `polluted ${ZONE_NAME[o.to]} (−${dmg.toFixed(1)})${block ? `, but the humans' shield blocked ${Math.round(block * 100)}%` : ''}`; e.k = 'fight';
         if (S.intel === o.to) S.intel = null;
         break;
       }
@@ -497,7 +511,7 @@
         S.lastBribe = S.tick;
         const amt = Math.round(10 + rand(S) * 25);
         a.seeds -= Math.min(a.seeds, amt);
-        S.offer = { amount: amt, tick: S.tick };
+        S.offer = { amount: amt, tick: S.tick, outbid: 0, backers: {} };
         e.act = `offered Sunfox ${amt} seeds to betray the guardians`; e.k = 'betray'; e.target = 'sunfox';
         break;
       }
@@ -666,7 +680,7 @@
 
   // ---------------------------------------------------------------- humans
   function join(S, p) {
-    const prev = S.players[p.id] || { score: 0, acts: 0, zoneHelp: {} };
+    const prev = S.players[p.id] || { score: 0, acts: 0, zoneHelp: {}, seeds: 10 };
     const pl = (S.players[p.id] = Object.assign(prev, {
       id: String(p.id).slice(0, 40), name: String(p.name || 'Player').slice(0, 20), av: p.av,
       profile: p.profile || prev.profile, seen: Date.now(),
@@ -746,6 +760,9 @@
     }
     p.score += Math.round(total);
     p.acts++;
+    // seeds: the currency you earn in real life and spend in the agents' showdowns
+    const earned = act.real ? Math.max(1, Math.round(total * 2)) : Math.round(total);
+    p.seeds = (p.seeds == null ? 10 : p.seeds) + earned;
 
     // daily streak: any real action counts for today; coming back on consecutive days builds it
     let streakUp = false;
@@ -772,7 +789,8 @@
       const giver = agentOf(S, q.from);
       giver.trust['h_' + pid] = 1;
       S.H[q.zone] = clamp(S.H[q.zone] + 3, 0, 100);
-      questNote = ` Completed ${BY_ID[q.from].name}'s quest (+3 bonus).`;
+      questNote = ` Completed ${BY_ID[q.from].name}'s quest (+3 bonus, +5 seeds).`;
+      p.seeds += 5;
       break;
     }
     if (logged) {
@@ -800,6 +818,65 @@
       });
     }
     return entry;
+  }
+
+  // ---------------------------------------------------------------- humans jump into the agents' drama with seeds
+  // kind: 'outbid' (keep Sunfox loyal), 'shield' (protect the zone the Baron is eyeing), 'gift' (seeds to an agent), 'mission' (ask an agent for one)
+  function back(S, pid, kind, amount, target) {
+    const p = S.players[pid];
+    if (!p) return { error: 'join first' };
+    p.seen = Date.now();
+    if (p.seeds == null) p.seeds = 10;
+    const amt = Math.max(1, Math.min(Math.round(+amount || 0), 50));
+    const pay = () => { if (p.seeds < amt) return false; p.seeds -= amt; return true; };
+    if (kind === 'outbid') {
+      if (!S.offer) return { error: 'No bribe on the table right now.' };
+      if (!pay()) return { error: `You only have ${p.seeds} seeds. Do something real to earn more.` };
+      S.offer.outbid = (S.offer.outbid || 0) + amt;
+      S.offer.backers = S.offer.backers || {};
+      S.offer.backers[pid] = (S.offer.backers[pid] || 0) + amt;
+      nudgeTrust(agentOf(S, 'sunfox'), 'h_' + pid, 0.1);
+      return { entry: log(S, { agent: 'human', who: pid, k: 'human', target: 'sunfox',
+        act: `${p.name} outbid the Baron: ${amt} seeds to keep Sunfox loyal`,
+        why: `Showdown! Humans have now put up ${S.offer.outbid} seeds against the Baron's ${S.offer.amount}.`, src: ['player (seeds earned in real life)'] }) };
+    }
+    if (kind === 'shield') {
+      const z = ZONES.includes(target) ? target : S.threat && S.threat.zone;
+      if (!z) return { error: 'The Baron is not eyeing any zone right now.' };
+      if (!pay()) return { error: `You only have ${p.seeds} seeds. Do something real to earn more.` };
+      S.shield = S.shield || {};
+      S.shield[z] = (S.shield[z] || 0) + amt;
+      S.attn[z] += amt / 5;
+      return { entry: log(S, { agent: 'human', who: pid, k: 'human',
+        act: `${p.name} shielded ${ZONE_NAME[z]} with ${amt} seeds`,
+        why: `${ZONE_NAME[z]}'s shield is now ${S.shield[z]}: it blocks up to ${Math.round(Math.min(0.8, S.shield[z] / 25) * 100)}% of the Baron's next attack there and makes him less likely to pick it.`, src: ['player (seeds earned in real life)'] }) };
+    }
+    if (kind === 'gift') {
+      const ag = agentOf(S, target);
+      if (!ag || target === 'baron') return { error: 'Pick a guardian or Sunfox.' };
+      if (!pay()) return { error: `You only have ${p.seeds} seeds. Do something real to earn more.` };
+      ag.energy = clamp(ag.energy + amt * 2, 0, 100);
+      ag.seeds += amt;
+      nudgeTrust(ag, 'h_' + pid, 0.15);
+      if (target === 'sunfox') for (const g of S.agents.filter((b) => BY_ID[b.id].type === 'guardian')) nudgeTrust(g, 'sunfox', 0.03 * amt / 5);
+      return { entry: log(S, { agent: 'human', who: pid, k: 'human', target,
+        act: `${p.name} gave ${BY_ID[target].name} ${amt} seeds`,
+        why: `${BY_ID[target].name} gets +${amt * 2} energy and trusts ${p.name} more.`, src: ['player (seeds earned in real life)'] }) };
+    }
+    if (kind === 'mission') {
+      const ag = agentOf(S, target);
+      if (!ag || target === 'baron') return { error: 'The Baron does not give missions.' };
+      const open = S.quests.find((q) => q.from === target && q.to === pid && !q.done && q.until >= S.tick);
+      if (open) return { quest: open };
+      const cat = catOfAgent(target);
+      const zone = cat ? CAT_ZONE[cat] : BY_ID[target].goal;
+      const [qk, text, line] = (cat && ledgerQuest(cat, p, S)) || questFor(zone, p.profile);
+      const q = { id: `q${S.seq + 1}`, from: target, to: pid, zone, kind: qk, text, line, until: S.tick + 30, done: false };
+      S.quests.push(q);
+      log(S, { agent: target, k: 'quest', target: 'h_' + pid, act: `asked ${p.name}: "${text}"`, why: `${p.name} asked for a mission. ${line}`, src: [p.profile ? `${p.name}'s profile` : 'player'] });
+      return { quest: q };
+    }
+    return { error: 'unknown move' };
   }
 
   // a logged line that does what the quest asked
@@ -841,6 +918,6 @@
     return { seed, status: S.status, ticks: S.tick, avg: Math.round(avgHealth(S)), H: S.H, hist: S.hist.slice(), key: key.slice(-14), report: report(S.log) };
   }
 
-  root.ImpactAgents = { ZONES, ZONE_NAME, ZN: ZONE_NAME, AGENTS, AG: BY_ID, SNAPSHOT, ROUND: ROUND_TICKS, create, tick, join, human, report, simulate, avgH: avgHealth, spawnMap, questFor,
+  root.ImpactAgents = { ZONES, ZONE_NAME, ZN: ZONE_NAME, AGENTS, AG: BY_ID, SNAPSHOT, ROUND: ROUND_TICKS, create, tick, join, human, back, report, simulate, avgH: avgHealth, spawnMap, questFor, OFFER_WAIT,
     ledgerOf, council, DEFAULT_BUDGET, CAT_ZONE, CAT_AGENT, COUNCIL_EVERY };
 })(typeof module !== 'undefined' ? module.exports : window);

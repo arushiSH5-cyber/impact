@@ -57,6 +57,14 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 - **Missions from your log**: when you go over today's budget in a category, its agent reacts on the next tick (Mossling: food, Frostbun: travel and energy, Ripplet: water, Sunfox: stuff). Logging a tofu meal completes Mossling's "plant-based meal" mission.
 - **Council** (every 12 ticks): the agents read the street's real logs, and an under-budget guardian can give part of its budget to an over-budget one (if it trusts it). The Smog Baron lobbies for a "Black Friday flash sale"; Sunfox casts the deciding vote based on its greed and trust. The council also learns which nudges each person actually follows.
 
+## The game: real life earns seeds, seeds win showdowns
+
+Real actions (a Litter Hunt, a plant-based swap, a mission) earn **seeds**. Seeds are how you play against the agents, live on the planet screen, together with everyone on your street:
+- **Bribe showdown:** when the Smog Baron bribes Sunfox, a card pops up on every phone and Sunfox *thinks for 2 ticks*. Players outbid the Baron with seeds; the outbid goes straight into Sunfox's refuse/betray scores. Then everyone sees the result: *"Sunfox stayed loyal!"* or *"Sunfox BETRAYED everyone!"*
+- **Shield:** the Baron's next target is shown live. Seeds put a shield on that zone: it blocks up to 80% of his next attack and makes him less likely to pick it.
+- **Tap a character** on the planet to see its mood and what it wants, give it seeds, or ask it for a personal mission.
+- **Story tab:** the run as a short feed of big moments (with faces); the full decision log with reasons and sources sits under a fold for judges.
+
 ## Litter Hunt and why people come back
 
 - **Litter Hunt** (Go! tab, Today tab, or Ripplet's "Do a 150 m Litter Hunt" mission): walk at least 150 m while the phone counts distance with GPS, tap **Binned one** and snap a photo for each piece of litter. The server computes the reward (client numbers are ignored): Ocean +1, plus up to +2 for the walk, plus 0.8 per piece with a photo. It completes Ripplet's mission and puts you on the street's **Top Litter Hunters** board. Location never leaves the phone, only the distance. GPS needs a secure (https) link; on plain http the hunt runs in honor mode and the walk counts less.

@@ -31,7 +31,7 @@ a { color: #2d6fb3; }
 .ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 #globe { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
-#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+#labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
 .glabel, .zlabel { position: absolute; left: 0; top: 0; transition: opacity .3s; white-space: nowrap; }
 .glabel b { display: block; background: var(--card); border: 2px solid var(--line); border-radius: 999px; padding: 1px 9px; font-size: 12px; box-shadow: 0 3px 0 rgba(0,0,0,.12); text-align: center; }
 .glabel .bub { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); width: max-content; max-width: 190px; white-space: normal; background: #fff; border: 2px solid var(--ink); border-radius: 14px; padding: 5px 9px; font-size: 12px; line-height: 1.3; box-shadow: 0 4px 0 rgba(0,0,0,.15); }
@@ -232,3 +232,59 @@ input[type=text], input[type=search] { width: 100%; font: inherit; padding: 12px
 .hunt-meter span { color: var(--mute); font-weight: 800; }
 .hunt-count { font-weight: 800; font-size: 18px; margin: 8px 0; }
 @media (max-width: 420px) { .hunt-card { grid-template-columns: 40px 1fr; } .hunt-card .btn { grid-column: 1 / -1; } }
+
+/* ---------- doodles ---------- */
+.dd { width: 1.25em; height: 1.25em; vertical-align: -0.28em; flex: none; display: inline-block; }
+.zone .dd { width: 22px; height: 22px; }
+h3 .dd { width: 28px; height: 28px; }
+
+/* ---------- tappable characters on the planet ---------- */
+.glabel b { pointer-events: auto; cursor: pointer; font-size: 13px; padding: 3px 11px; border-width: 2.5px; }
+.glabel b:hover, .glabel b:focus-visible { border-color: var(--sun); transform: scale(1.08); }
+.glabel .bub { font-weight: 800; font-size: 13px; }
+
+/* ---------- showdown card over the planet ---------- */
+#show { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); width: min(560px, calc(100% - 24px)); z-index: 15; }
+.show-card { position: relative; display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; background: var(--card); border: 3px solid var(--line); border-radius: 24px; padding: 12px 14px; box-shadow: var(--shadow); animation: pop-in .35s cubic-bezier(.3,1.6,.6,1); }
+.show-card img { width: 64px; height: 64px; }
+.show-card.hot { border-color: #e7a3a3; background: linear-gradient(135deg, #fff8f7, var(--card)); }
+.show-card.hot img { animation: wobble 1.2s ease-in-out infinite; }
+.show-card.warn { border-color: var(--sun); background: linear-gradient(135deg, #fff8e1, var(--card)); }
+.show-card.good { border-color: var(--leaf); background: linear-gradient(135deg, var(--leaf-bg), var(--card)); }
+.show-card.bad { border-color: var(--bad); background: linear-gradient(135deg, var(--bad-bg), var(--card)); }
+.show-h { display: block; font: 700 23px/1.1 Gaegu, cursive; }
+.show-sub { display: block; font-size: 13px; color: #4b463b; margin-top: 2px; }
+.show-bar { height: 10px; border-radius: 6px; background: #f3d0cc; overflow: hidden; margin: 8px 0 2px; }
+.show-bar i { display: block; height: 100%; background: var(--leaf); transition: width .4s; }
+.show-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.show-btns .btn { min-height: 40px; padding: 8px 14px; }
+.show-seeds { font-weight: 800; color: var(--mute); display: inline-flex; gap: 4px; align-items: center; }
+.show-card .x { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; font-size: 13px; background: var(--card); }
+@keyframes pop-in { from { transform: translateY(20px) scale(.9); opacity: 0; } }
+@keyframes wobble { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+/* ---------- story feed ---------- */
+.story-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.story-meter { flex: 1 1 160px; height: 14px; border-radius: 8px; background: var(--bad-bg); overflow: hidden; max-width: 260px; }
+.story-meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--sun), var(--leaf)); }
+.story { display: grid; gap: 10px; }
+.moment { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; background: #fff; border: 2.5px solid var(--line); border-radius: 20px; padding: 10px 14px; }
+.moment img { width: 56px; height: 56px; }
+.moment-h { font-size: 16px; line-height: 1.3; }
+.moment.good { border-color: #b4dbb2; background: #f6fbf4; }
+.moment.bad { border-color: #e7a3a3; background: #fff8f7; }
+details.receipts { margin-top: 16px; background: var(--card2); border-radius: 18px; padding: 10px 14px; }
+details.receipts summary { cursor: pointer; font-weight: 800; color: var(--mute); }
+details.receipts[open] summary { margin-bottom: 10px; }
+
+/* ---------- confetti ---------- */
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.confetti i { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 3px; animation: fall 1.9s ease-in forwards; }
+@keyframes fall { to { top: 105%; transform: translateX(40px) rotate(540deg); } }
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } .show-card, .show-card.hot img { animation: none; } }
+
+/* declutter the planet: zone health lives in the top bar */
+.zlabel { display: none !important; }
+#agentsBtn { display: none; }
+
+body.covered #labels, body.modal-open #labels { visibility: hidden; }

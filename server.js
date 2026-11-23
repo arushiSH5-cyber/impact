@@ -301,6 +301,16 @@ const routes = {
     appendLog([e]); appendLedger(String(b.id), e, act.via); persist(); broadcast();
     send(res, 200, { ok: true, entry: e });
   },
+  // humans jump into the agents' drama: outbid the Baron, shield a zone, gift an agent, ask for a mission
+  async 'POST /api/back'(req, res) {
+    const b = await readBody(req);
+    if (!b.id || !b.kind) return send(res, 400, { error: 'id and kind required' });
+    const r = IA.back(S, String(b.id), String(b.kind), b.amount, b.target);
+    if (r.error) return send(res, 400, r);
+    if (r.entry) appendLog([r.entry]);
+    persist(); broadcast();
+    send(res, 200, Object.assign({ ok: true, seeds: (S.players[b.id] || {}).seeds }, r));
+  },
   async 'POST /api/new'(req, res) {
     const b = await readBody(req);
     const players = S.players, postcards = S.postcards;
