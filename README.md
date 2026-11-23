@@ -2,9 +2,7 @@
 
 **Track 02 · Co-op Multiplayer Game · Agents for Impact Hackathon (Nov 23, 2026)**
 
-> A UI concept was sketched before the event; all code in this repo was written during the event.
-
-Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it and act every 10 seconds, even when nobody is playing. **Two or more humans** join from their phones and share the same world. The agents' choices are driven by **live air-quality data from a Bruin pipeline** and by the humans' **real carbon ledger**: what you actually ate, drove, showered and threw away today, logged by tapping or by scanning a receipt, and computed only from cited emission factors. An **agent council** renegotiates the street's daily budget every few minutes. Every decision is logged with *why*, *the data it used* and *its source*, and Bruin recomputes everyone's footprint and audits the agents afterwards.
+Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it and act every 10 seconds, even when nobody is playing. **Two or more humans** join from their phones and share the same world. The agents' choices are driven by **live air-quality data from a Bruin pipeline** and by the humans' **real carbon ledger**: how you actually traveled, showered and what you threw away today, logged by tapping or by scanning a receipt, and computed only from cited emission factors. An **agent council** renegotiates the street's daily budget every few minutes. Every decision is logged with *why*, *the data it used* and *its source*, and Bruin recomputes everyone's footprint and audits the agents afterwards.
 
 ```
  Your real log (tap or receipt scan) ─► server: cited factors ─► logs/ledger.jsonl ─► Bruin footprint_daily (recomputes + checks the math)
