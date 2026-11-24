@@ -381,8 +381,9 @@ const routes = {
   },
   async 'GET /api/places'(req, res, u) {
     if (!sponsors.glasser.health().ok) return send(res, 503, { error: 'Glasser not connected' });
-    const q = String(u.searchParams.get('q') || 'recycling center near Los Angeles').slice(0, 80);
-    try { send(res, 200, { items: await sponsors.glasser.places(q), source: 'Glasser' }); } catch (e) { send(res, 502, { error: e.message }); }
+    const q = String(u.searchParams.get('q') || 'recycling center').slice(0, 80);
+    const near = { lat: parseFloat(u.searchParams.get('lat')), lng: parseFloat(u.searchParams.get('lng')) };
+    try { const r = await sponsors.glasser.places(q, near); send(res, 200, Object.assign({ source: 'Glasser' }, r)); } catch (e) { send(res, 502, { error: e.message }); }
   },
 };
 

@@ -95,7 +95,7 @@ function loadDetector() {
 }
 
 // ---------------------------------------------------------------- the catch screen
-export function startCatch({ onCatch, onReal, speak, cond, condHTML, onPost }) {
+export function startCatch({ onCatch, onReal, speak, cond, condHTML, onPost, onNearby }) {
   const root = document.createElement('div');
   root.className = 'catch';
   root.innerHTML = `<video playsinline muted autoplay></video><div class="c-park"></div><canvas></canvas>
@@ -241,9 +241,11 @@ export function startCatch({ onCatch, onReal, speak, cond, condHTML, onPost }) {
         ${gear ? `<div class="c-gear"><b>Equipment earned: ${gear.name}</b><span>${gear.atk ? `+${gear.atk} attack` : ''}${gear.atk && gear.hp ? ' · ' : ''}${gear.hp ? `+${gear.hp} health` : ''} for your whole raid squad. Scanned from a real ${realFrom}.</span></div>` : ''}
         <div class="c-real"><b>Now catch a real one.</b> Pick up a piece of litter near you, bin it and snap it: that heals the ocean for your whole street and earns real seeds.</div>
         <button class="btn big c-bin">I binned a real one</button>
+        <button class="btn ghost c-near">📍 Bin it nearby (Glasser)</button>
         <div class="c-row"><button class="btn ghost c-next">Catch another</button><button class="btn ghost c-done">Done</button></div>`;
       box.querySelector('.c-bin').onclick = () => { close(); onReal && onReal(); };
-      box.querySelector('.c-next').onclick = () => { close(); startCatch({ onCatch, onReal, speak, cond, condHTML, onPost }); };
+      box.querySelector('.c-near').onclick = () => { close(); onNearby && onNearby(crit); };
+      box.querySelector('.c-next').onclick = () => { close(); startCatch({ onCatch, onReal, speak, cond, condHTML, onPost, onNearby }); };
       box.querySelector('.c-done').onclick = close;
     }, 700);
   }

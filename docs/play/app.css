@@ -532,3 +532,5 @@ body.covered #huntFab { display: none; }
 .r-power { left: 20px !important; right: 20px; width: auto !important; transform: none !important; margin: 0 auto; max-width: 340px; }
 .lvl { display: grid; gap: 2px; background: linear-gradient(135deg, #fff1c9, #e3f2df); border: 2px solid #ffd34d; border-radius: 18px; padding: 10px 14px; margin: 6px 0 10px; }
 .lvl b { font: 700 26px Gaegu, cursive; } .lvl span { font-size: 14px; color: var(--mute); }
+.cc.glasser { border-color: #f59e0b; }
+.c-near { display: block; margin: 8px auto 0; }

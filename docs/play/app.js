@@ -622,6 +622,7 @@ const SPONSOR_ROLES = [
   ['band', 'BAND', 'agents post to a real chat room; rally from it'],
   ['telem', 'Telem', 'today\'s real news moves the agents'],
   ['runware', 'Runware', 'character voices + story postcards'],
+  ['glasser', 'Glasser', 'real recycling drop-offs near you'],
 ];
 function sponsorStrip() {
   return `<div class="sstrip">${SPONSOR_ROLES.map(([k, n, what]) => {
@@ -676,6 +677,7 @@ function playCatch() {
       confetti();
     },
     onReal: () => doAction('litter'),
+    onNearby: binNearby,
   });
 }
 TABS.dex = {
@@ -714,6 +716,7 @@ function condHTML(c, what) {
   if (c.news) chips.push(`<span class="cc telem"><b>Telem</b> “${esc(String(c.news.title).split('|')[0].trim().slice(0, 70))}” → ${what.news}</span>`);
   chips.push(`<span class="cc runware"><b>Runware</b> character voices${c.recorded ? ' (recorded)' : ''}</span>`);
   chips.push(`<span class="cc band"><b>BAND</b> ${c.band ? 'your result posts to the room' : 'results post on the live server'}</span>`);
+  chips.push(`<span class="cc glasser"><b>Glasser</b> finds the nearest real drop-off</span>`);
   return `<div class="cond">${chips.join('')}</div>`;
 }
 async function postResult(game, text) {
@@ -755,6 +758,23 @@ function raidedNotice() {
   $('#revB').onclick = () => { closeModal(); openSheet('raid'); };
 }
 setTimeout(raidedNotice, 4000);
+
+// ------------------------------------------------------------------ Glasser: the nearest real drop-off for what you caught
+const DROP = { bottle: 'recycling center', can: 'e-waste recycling', cup: 'recycling center', bag: 'plastic bag recycling drop off', wrapper: 'paper recycling', straw: 'recycling center', tire: 'tire recycling', star: 'recycling center' };
+async function binNearby(crit) {
+  const q = DROP[crit && crit.id] || 'recycling center';
+  modal(`<h2>Bin it nearby</h2><p class="muted small">Finding the closest real ${esc(q)} with Glasser…</p>`);
+  let pos = null;
+  try { pos = await new Promise((ok) => { if (!navigator.geolocation || !window.isSecureContext) return ok(null); navigator.geolocation.getCurrentPosition((p) => ok(p.coords), () => ok(null), { timeout: 6000, maximumAge: 600000 }); }); } catch (e) { pos = null; }
+  let r = null, recorded = false;
+  if (mode === 'online') { try { r = await fetch(`api/places?q=${encodeURIComponent(q)}${pos ? `&lat=${pos.latitude.toFixed(3)}&lng=${pos.longitude.toFixed(3)}` : ''}`).then((x) => x.json()); } catch (e) { r = null; } }
+  if ((!r || !r.items) && SNAP && SNAP.places) { r = SNAP.places[q] || SNAP.places['recycling center']; recorded = true; }
+  if (!r || !r.items || !r.items.length) { modal(`<h2>Bin it nearby</h2><p class="muted">Glasser couldn't reach a map right now. Any public recycling bin works too!</p><button class="btn wide" data-close>OK</button>`); return; }
+  modal(`<h2>Bin it nearby</h2><p class="small"><span class="chip ok">Glasser</span> real ${esc(q)} places ${pos ? 'near you' : 'in Los Angeles'}${recorded ? ' (recorded live today)' : ''}</p>
+    ${r.items.map((p) => `<div class="box" style="margin:8px 0"><b>${esc(p.name)}</b><div class="small muted">${esc(p.address || '')}${p.rating ? ` · ★ ${p.rating}` : ''}</div><a class="small" href="${esc(p.url)}" target="_blank" rel="noopener">Open in Maps</a></div>`).join('')}
+    <div class="row" style="justify-content:center"><button class="btn" id="nbDone">I binned it there</button><button class="btn ghost" data-close>Close</button></div>`);
+  $('#nbDone').onclick = () => { closeModal(); doAction('litter'); };
+}
 
 // ------------------------------------------------------------------ Smog Siege (3D flagship, public/siege.js)
 function playSiege() {

@@ -4,19 +4,23 @@
  "health": {
   "bruin": {
    "ok": true,
-   "detail": "5 zones · 2026-11-23 · built 2026-11-23 20:17 UTC"
+   "detail": "5 zones \u00b7 2026-11-23 \u00b7 built 2026-11-23 20:17 UTC"
   },
   "band": {
    "ok": true,
-   "detail": "room cb12a5ac… · 114 posts out · 0 commands in · live socket on"
+   "detail": "room cb12a5ac\u2026 \u00b7 114 posts out \u00b7 0 commands in \u00b7 live socket on"
   },
   "telem": {
    "ok": true,
-   "detail": "2 searches · 8 live items today · 5 zones cited"
+   "detail": "2 searches \u00b7 8 live items today \u00b7 5 zones cited"
   },
   "runware": {
    "ok": true,
-   "detail": "10 images · total cost $0.0622"
+   "detail": "10 images \u00b7 total cost $0.0622"
+  },
+  "glasser": {
+   "ok": true,
+   "detail": "serper/maps \u00b7 5 live runs \u00b7 ~$0.015"
   }
  },
  "spawn": [
@@ -99,28 +103,28 @@
   {
    "title": "Snowiest November Since 2010 Hits Palisades Tahoe, CA",
    "url": "https://snowbrains.com/palisades-tahoe-snowiest-november-since-2010/",
-   "summary": "# Palisades Tahoe, CA, Hits 71 Inches for Its Snowiest November Since 2010 SnowBrains | November 23, 2026 | Industry News 71″ of fresh snow in November already! | photo: Palisades Tahoe Palisades Tahoe, California, is having its snowiest No",
+   "summary": "# Palisades Tahoe, CA, Hits 71 Inches for Its Snowiest November Since 2010 SnowBrains | November 23, 2026 | Industry News 71\u2033 of fresh snow in November already! | photo: Palisades Tahoe Palisades Tahoe, California, is having its snowiest No",
    "published": "2026-11-23",
    "source": "snowbrains.com"
   },
   {
-   "title": "Snowfall in Tahoe already a quarter of last winter’s season total | TahoeDailyTribune.com",
+   "title": "Snowfall in Tahoe already a quarter of last winter\u2019s season total | TahoeDailyTribune.com",
    "url": "https://www.tahoedailytribune.com/news/snowfall-in-tahoe-already-a-quarter-of-last-winters-season-total/",
-   "summary": "# Snowfall in Tahoe already a quarter of last winter’s season total News News | Nov 23, 2026 ###### Katelyn Welsh Follow kwelsh@tahoedailytribune.com Freshly frosted trees and meadow in South Lake Tahoe after this week's storm. Mike Peron /",
+   "summary": "# Snowfall in Tahoe already a quarter of last winter\u2019s season total News News | Nov 23, 2026 ###### Katelyn Welsh Follow kwelsh@tahoedailytribune.com Freshly frosted trees and meadow in South Lake Tahoe after this week's storm. Mike Peron /",
    "published": "2026-11-23",
    "source": "tahoedailytribune.com"
   },
   {
-   "title": "Dirtiest Air Right Now by City (2026) · The Honest Local",
+   "title": "Dirtiest Air Right Now by City (2026) \u00b7 The Honest Local",
    "url": "https://thehonestlocal.com/rankings/dirtiest-air-now",
-   "summary": "Harrisburg, Pennsylvania has the dirtiest air right now of the 105 US cities we rank, with an AQI of 97 (AirNow, Nov 22, 2026). New York, New York is next, with an AQI of 84. By The Honest Local · 105 cities · every value links to its publi",
+   "summary": "Harrisburg, Pennsylvania has the dirtiest air right now of the 105 US cities we rank, with an AQI of 97 (AirNow, Nov 22, 2026). New York, New York is next, with an AQI of 84. By The Honest Local \u00b7 105 cities \u00b7 every value links to its publi",
    "published": "2026-11-23",
    "source": "thehonestlocal.com"
   },
   {
    "title": "Dodging space junk costs $58 million a year. Meet the developer of 'autopilot for satellites' | Fortune",
    "url": "https://fortune.com/2026/11/23/space-junk-nasa-space-force-bqp-dodging-satellite",
-   "summary": "When NASA’s Skylab space station crashed over Western Australia in 1979, the Shire of Esperance fined the agency $400 for littering, but NASA never paid. And bills have only gotten bigger. In 1978, a Soviet satellite, Cosmos 954, scattered ",
+   "summary": "When NASA\u2019s Skylab space station crashed over Western Australia in 1979, the Shire of Esperance fined the agency $400 for littering, but NASA never paid. And bills have only gotten bigger. In 1978, a Soviet satellite, Cosmos 954, scattered ",
    "published": "2026-11-23",
    "source": "fortune.com"
   },
@@ -132,7 +136,7 @@
    "source": "texastribune.org"
   },
   {
-   "title": "Newsom Says California ‘Ready’ for Fires After Expanding Firefighting Force - Newsweek",
+   "title": "Newsom Says California \u2018Ready\u2019 for Fires After Expanding Firefighting Force - Newsweek",
    "url": "https://www.newsweek.com/newsom-says-california-ready-for-fires-after-expanding-firefighting-force-12750649",
    "summary": "After a series of deadly wildfires burned nearly 40,000 acres and destroyed thousands of homes and businesses across Los Angeles, the state of California is spending billions of dollars to try to prepare for the next wildfire season. Since ",
    "published": "2026-11-21",
@@ -147,7 +151,7 @@
   },
   {
    "agent": "baron",
-   "act": "polluted Desert (−4.9)",
+   "act": "polluted Desert (\u22124.9)",
    "why": "Sunfox leaked that Desert is weak"
   },
   {
@@ -157,13 +161,13 @@
   },
   {
    "agent": "sunfox",
-   "act": "voted NO on the flash sale (stuff budget → 3.5)",
+   "act": "voted NO on the flash sale (stuff budget \u2192 3.5)",
    "why": "it trusts the guardians more than it wants seeds (greed 0.96)"
   },
   {
    "agent": "world",
    "act": "COUNCIL MEETING: rebalancing tomorrow's budget",
-   "why": "Street average today (0 players logging): food 0.0/6 · travel 0.0/8 · water 0/250 · stuff 0/4."
+   "why": "Street average today (0 players logging): food 0.0/6 \u00b7 travel 0.0/8 \u00b7 water 0/250 \u00b7 stuff 0/4."
   },
   {
    "agent": "frostbun",
@@ -172,12 +176,12 @@
   },
   {
    "agent": "baron",
-   "act": "polluted Desert (−2.7)",
+   "act": "polluted Desert (\u22122.7)",
    "why": "Desert is weak (21), humans ignore it, and PM2.5 20.3 helps the smog"
   },
   {
    "agent": "sunfox",
-   "act": "is thinking about the Baron's 19-seed bribe…",
+   "act": "is thinking about the Baron's 19-seed bribe\u2026",
    "why": "the Baron's 19-seed offer is on the table and it wants to see what the humans do"
   }
  ],
@@ -202,16 +206,16 @@
   }
  ],
  "voices": {
-  "baron|Sunfox, my dear… these shiny seeds are yours if you look the other way.": "snap/voice-baron-0.mp3",
-  "baron|That zone looks… delicious.": "snap/voice-baron-1.mp3",
+  "baron|Sunfox, my dear\u2026 these shiny seeds are yours if you look the other way.": "snap/voice-baron-0.mp3",
+  "baron|That zone looks\u2026 delicious.": "snap/voice-baron-1.mp3",
   "baron|Ah, a little duel. I will learn every move you make.": "snap/voice-baron-2.mp3",
   "baron|Predictable. So very predictable.": "snap/voice-baron-3.mp3",
   "baron|Enough games. I will grey this planet myself!": "snap/voice-baron-4.mp3",
   "baron|Curses! This is not over!": "snap/voice-baron-5.mp3",
-  "baron|Mwahaha! The planet is mine… for now.": "snap/voice-baron-6.mp3",
+  "baron|Mwahaha! The planet is mine\u2026 for now.": "snap/voice-baron-6.mp3",
   "baron|intro": "snap/voice-baron-7.mp3",
   "sunfox|Nope! I'm sticking with my friends!": "snap/voice-sunfox-8.mp3",
-  "sunfox|Hehe… sorry, guardians. A fox has to eat!": "snap/voice-sunfox-9.mp3",
+  "sunfox|Hehe\u2026 sorry, guardians. A fox has to eat!": "snap/voice-sunfox-9.mp3",
   "sunfox|intro": "snap/voice-sunfox-10.mp3",
   "mossling|Hi friend! Let's heal the planet together!": "snap/voice-mossling-11.mp3",
   "mossling|Yes! Teamwork!": "snap/voice-mossling-12.mp3",
@@ -232,5 +236,282 @@
   "frostbun|Yes! Teamwork!": "snap/voice-frostbun-27.mp3",
   "frostbun|You did it! Thank you!": "snap/voice-frostbun-28.mp3",
   "frostbun|intro": "snap/voice-frostbun-29.mp3"
+ },
+ "places": {
+  "recycling center": {
+   "items": [
+    {
+     "name": "Miriam's Recycling Center",
+     "address": "714 E 7th St, Los Angeles, CA 90021",
+     "rating": 4.2,
+     "phone": "",
+     "lat": 34.0396861,
+     "lng": -118.24563239999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJxTAAuo_HwoARF5ICu6krZbA"
+    },
+    {
+     "name": "Temple Recycling Center",
+     "address": "3521 W Temple St, Los Angeles, CA 90004",
+     "rating": 4,
+     "phone": "(323) 664-2096",
+     "lat": 34.0770488,
+     "lng": -118.28547499999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJQZXhNmjHwoAR31CjHjdXjJM"
+    },
+    {
+     "name": "Century Jr. Recycling #2",
+     "address": "1618 W Washington Blvd, Los Angeles, CA 90007",
+     "rating": 3.8,
+     "phone": "(323) 453-5275",
+     "lat": 34.0398304,
+     "lng": -118.29221229999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJh8BtoGHHwoARemDM7LStm8Q"
+    },
+    {
+     "name": "D\u00c0J\u00c9S Recycling Center",
+     "address": "181 E Vernon Ave, Los Angeles, CA 90011",
+     "rating": 4.8,
+     "phone": "(323) 423-0428",
+     "lat": 34.0040013,
+     "lng": -118.2722273,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJOYBuif_JwoARUtCLfXHGUh8"
+    },
+    {
+     "name": "Chris Recycling center",
+     "address": "1024 S Central Ave, Los Angeles, CA 90021",
+     "rating": 4.5,
+     "phone": "(323) 313-8464",
+     "lat": 34.0308545,
+     "lng": -118.24471299999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJSdHlIinGwoARKWm83LUptJc"
+    }
+   ],
+   "run_url": "https://app.glasser.ai/runs/65ff0400-f572-459b-8f5b-20c329487691"
+  },
+  "e-waste recycling": {
+   "items": [
+    {
+     "name": "Glendale Recycling Center",
+     "address": "1850 Glendale Blvd, Los Angeles, CA 90026",
+     "rating": 4.2,
+     "phone": "(818) 334-0934",
+     "lat": 34.0891616,
+     "lng": -118.25901189999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJlU8j-yPHwoARM35xmeFt_yQ"
+    },
+    {
+     "name": "Star Recycling",
+     "address": "2623 W Pico Blvd, Los Angeles, CA 90006",
+     "rating": 4.5,
+     "phone": "(213) 380-7635",
+     "lat": 34.047362199999995,
+     "lng": -118.29530729999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJVe2s9YbHwoARidiBVHm37Xk"
+    },
+    {
+     "name": "STS Electronic Recycling",
+     "address": "777 S Alameda St 2nd floor, Los Angeles, CA 90021",
+     "rating": 5,
+     "phone": "(213) 205-1424",
+     "lat": 34.033736,
+     "lng": -118.2414884,
+     "type": "Recycling center",
+     "url": "https://www.stselectronicrecyclinginc.com/los-angeles"
+    },
+    {
+     "name": "G & P Recycling Center",
+     "address": "1329 W Jefferson Blvd, Los Angeles, CA 90007",
+     "rating": 4.3,
+     "phone": "",
+     "lat": 34.0256945,
+     "lng": -118.2954571,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJ9euGE_fHwoARfRnjoYPy0HQ"
+    },
+    {
+     "name": "Computer Recycling Team",
+     "address": "1750 Floradale Ave, South El Monte, CA 91733",
+     "rating": 4.9,
+     "phone": "(626) 552-3288",
+     "lat": 34.0474958,
+     "lng": -118.03871529999999,
+     "type": "Recycling center",
+     "url": "http://www.computerrecyclingteam.com/"
+    }
+   ],
+   "run_url": "https://app.glasser.ai/runs/007234bb-3612-42fe-9785-95838cfba177"
+  },
+  "plastic bag recycling drop off": {
+   "items": [
+    {
+     "name": "Star Recycling",
+     "address": "2623 W Pico Blvd, Los Angeles, CA 90006",
+     "rating": 4.5,
+     "phone": "(213) 380-7635",
+     "lat": 34.047362199999995,
+     "lng": -118.29530729999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJVe2s9YbHwoARidiBVHm37Xk"
+    },
+    {
+     "name": "G & P Recycling Center",
+     "address": "1329 W Jefferson Blvd, Los Angeles, CA 90007",
+     "rating": 4.3,
+     "phone": "",
+     "lat": 34.0256945,
+     "lng": -118.2954571,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJ9euGE_fHwoARfRnjoYPy0HQ"
+    },
+    {
+     "name": "Glendale Recycling Center",
+     "address": "1850 Glendale Blvd, Los Angeles, CA 90026",
+     "rating": 4.2,
+     "phone": "(818) 334-0934",
+     "lat": 34.0891616,
+     "lng": -118.25901189999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJlU8j-yPHwoARM35xmeFt_yQ"
+    },
+    {
+     "name": "Venus Recycling",
+     "address": "2517 W 8th St, Los Angeles, CA 90057",
+     "rating": 4.3,
+     "phone": "(213) 365-2681",
+     "lat": 34.0570373,
+     "lng": -118.28220359999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJa8BV3p3HwoAR3UZJDXTTcuU"
+    },
+    {
+     "name": "Recycle Center",
+     "address": "3441 Whittier Blvd #3431, Los Angeles, CA 90023",
+     "rating": 3.9,
+     "phone": "(323) 267-0224",
+     "lat": 34.027412999999996,
+     "lng": -118.19957459999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJ2VHLAU7PwoARUmlfwhu3PYs"
+    }
+   ],
+   "run_url": "https://app.glasser.ai/runs/9dfa4642-97cb-4652-bd29-fbf205eb95fa"
+  },
+  "paper recycling": {
+   "items": [
+    {
+     "name": "Angelus-Western Paper Fibers",
+     "address": "2474 Porter St, Los Angeles, CA 90021",
+     "rating": 4.7,
+     "phone": "(213) 623-9221",
+     "lat": 34.026300899999995,
+     "lng": -118.2273522,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJ3WKnjqHIwoARdKq5tqf7K48"
+    },
+    {
+     "name": "Miriam's Recycling Center",
+     "address": "714 E 7th St, Los Angeles, CA 90021",
+     "rating": 4.2,
+     "phone": "",
+     "lat": 34.0396861,
+     "lng": -118.24563239999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJxTAAuo_HwoARF5ICu6krZbA"
+    },
+    {
+     "name": "G & P Recycling Center",
+     "address": "1329 W Jefferson Blvd, Los Angeles, CA 90007",
+     "rating": 4.3,
+     "phone": "",
+     "lat": 34.0256945,
+     "lng": -118.2954571,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJ9euGE_fHwoARfRnjoYPy0HQ"
+    },
+    {
+     "name": "City Fibers",
+     "address": "2211 E Washington Blvd, Los Angeles, CA 90021",
+     "rating": 3.7,
+     "phone": "",
+     "lat": 34.019157899999996,
+     "lng": -118.2330417,
+     "type": "Recycling center",
+     "url": "https://www.cityfibers.com/"
+    },
+    {
+     "name": "FALLAS Recycling Center",
+     "address": "Los Angeles, CA 90027",
+     "rating": 4.5,
+     "phone": "",
+     "lat": 34.1000954,
+     "lng": -118.29192259999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJzfgrQ6zAwoARojsDKAgBRA0"
+    }
+   ],
+   "run_url": "https://app.glasser.ai/runs/b2cd0909-a973-468e-b1d1-4ea3db69d256"
+  },
+  "tire recycling": {
+   "items": [
+    {
+     "name": "24 Hour Mobile Tire Repair Service",
+     "address": "7000 Hawthorn Ave, Los Angeles, CA 90028",
+     "rating": null,
+     "phone": "(310) 497-4295",
+     "lat": 34.0998647,
+     "lng": -118.3417066,
+     "type": "Tire shop",
+     "url": "https://24hour-tire-shop.ueniweb.com/"
+    },
+    {
+     "name": "Tire recycle",
+     "address": "786 S Mission Rd, Los Angeles, CA 90023",
+     "rating": null,
+     "phone": "",
+     "lat": 34.0311235,
+     "lng": -118.2247175,
+     "type": "Auto repair shop",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJd0IadwDJwoAR9R9wXjDF0mw"
+    },
+    {
+     "name": "Vernon Recycling Center",
+     "address": "1713 E Vernon Ave, Los Angeles, CA 90058",
+     "rating": 4.7,
+     "phone": "",
+     "lat": 34.0040744,
+     "lng": -118.2418687,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJrbZ5Y_LIwoARD_UgXq70K44"
+    },
+    {
+     "name": "L.A. Tires",
+     "address": "2517 W 8th St, Los Angeles, CA 90057",
+     "rating": 4.4,
+     "phone": "(323) 493-9621",
+     "lat": 34.057125,
+     "lng": -118.28247119999999,
+     "type": "Tire shop",
+     "url": "http://latiresinc.com/"
+    },
+    {
+     "name": "Glendale Recycling Center",
+     "address": "1850 Glendale Blvd, Los Angeles, CA 90026",
+     "rating": 4.2,
+     "phone": "(818) 334-0934",
+     "lat": 34.0891616,
+     "lng": -118.25901189999999,
+     "type": "Recycling center",
+     "url": "https://www.google.com/maps/place/?q=place_id:ChIJlU8j-yPHwoARM35xmeFt_yQ"
+    }
+   ],
+   "run_url": "https://app.glasser.ai/runs/670a26e2-41f7-4169-90c7-6b40418e2ce0"
+  }
  }
 }

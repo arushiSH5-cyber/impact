@@ -140,15 +140,23 @@ body.render .hero { min-height: 100vh; }
   <div class="copy wrap">
     <h1>Impact</h1>
     <p class="tag">Five AI characters live on a shared planet that runs on your real day. They argue, they get bribed, and they need <i>you</i> to save them.</p>
-    <div class="chips"><span class="chip">5 autonomous agents</span><span class="chip">multiplayer on phones</span><span class="chip">Bruin · BAND · Telem · Runware</span></div>
+    <div class="chips"><span class="chip">5 autonomous agents</span><span class="chip">multiplayer on phones</span><span class="chip">Bruin · BAND · Telem · Runware · Glasser</span></div>
     <div class="cta">
-      <a class="btn alt" href="play/">Play now</a>
-      <a class="btn" href="#slides">See the slides</a>
+      <a class="btn alt" href="#video">▶ Watch the demo</a>
+      <a class="btn" href="play/">Play now</a>
+      <a class="btn ghost" href="#slides">Slides</a>
       <a class="btn ghost" href="https://github.com/arushiSH5-cyber/impact" target="_blank" rel="noopener">Code on GitHub</a>
     </div>
   </div>
   <span class="scroll-hint">scroll ↓</span>
 </header>
+
+<section id="video">
+  <div class="wrap">
+    <div class="sec-h"><h2>Demo video</h2></div>
+    <div class="video"><div class="frame" id="videoFrame"><div class="soon"><h3>Coming soon</h3><p>The two-minute demo lands here.</p></div></div></div>
+  </div>
+</section>
 
 <section id="agents">
   <div class="wrap">
@@ -192,12 +200,7 @@ body.render .hero { min-height: 100vh; }
   </div>
 </section>
 
-<section id="video">
-  <div class="wrap">
-    <div class="sec-h"><h2>Demo video</h2></div>
-    <div class="video"><div class="frame" id="videoFrame"><div class="soon"><h3>Coming soon</h3><p>The two-minute demo lands here.</p></div></div></div>
-  </div>
-</section>
+
 
 <footer>Impact · Agents for Impact Hackathon · Nov 23, 2026 · Track 02</footer>
 
@@ -206,7 +209,7 @@ import * as THREE from 'three';
 import { faceURL, drawFace } from './faces.js';
 
 // Paste the YouTube or Loom embed link here when the video is ready (e.g. https://www.youtube.com/embed/XXXX).
-const VIDEO_URL = '';
+const VIDEO_URL = 'impact-demo.mp4';
 
 const AGENTS = [
   { id: 'mossling', name: 'Mossling', role: 'Gardener', color: '#5fbf6a', bio: 'Wants the forest back above 70. Plants trees, makes allies, asks you to help clean up parks.' },
@@ -225,7 +228,8 @@ const SP = [
   ['Bruin', 'The agents\' senses + auditor', 'A 9-asset pipeline with 33 checks turns live LA air quality into daily_spawn, which every agent reads every tick. High PM2.5 makes the Baron stronger and the guardians more urgent. Bruin also recomputes footprints and audits every agent decision: the in-app Run report is the Bruin audit.'],
   ['BAND', 'Agents ⇄ humans', 'The agents post alliances, bribes and betrayals to a real BAND room. Type @Impact World rally ocean there and the ocean heals on every phone.'],
   ['Telem', 'Live news', 'Today\'s real headlines per zone change decisions. Alarming news raises a guardian\'s urgency and draws the Baron there. Every move cites its article.'],
-  ['Runware', 'Voices + postcards', 'Each character speaks with its own Runware text-to-speech voice, and every run ends with a storybook postcard of the final planet.'],
+  ['Runware', 'Voices + all the art', 'Each character speaks with its own Runware text-to-speech voice, and Runware painted every scene, cover and postcard in the game (and narrated the demo video).'],
+  ['Glasser', 'Real drop-offs near you', 'After you catch a litter critter, “Bin it nearby” uses Glasser (live Google Maps data) to find the closest real recycling or e-waste drop-off, so the game ends at a real bin.'],
 ];
 document.getElementById('spGrid').innerHTML = SP.map(([n, r, d]) => `<div class="tilt sp"><div class="pop"><h3>${n}</h3><span class="ok"><i></i>${r}</span><p>${d}</p></div></div>`).join('');
 
@@ -244,7 +248,7 @@ ring.innerHTML = SHOTS.map(([f, c], i) => `<figure style="transform: rotateY(${(
 
 // ---------------- video
 const vf = document.getElementById('videoFrame');
-if (VIDEO_URL) vf.innerHTML = `<iframe src="${VIDEO_URL}" title="Impact demo video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+if (VIDEO_URL) vf.innerHTML = /\.mp4$/.test(VIDEO_URL) ? `<video src="${VIDEO_URL}" poster="impact-demo-poster.jpg" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover"></video>` : `<iframe src="${VIDEO_URL}" title="Impact demo video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
 
 // ---------------- slides
 const face = (id, s = 96) => faceURL(AGENTS.find((a) => a.id === id), s);

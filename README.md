@@ -6,7 +6,7 @@
 
 **Five AI characters live on a shared 3D planet that runs on your real day.<br>They argue, they get bribed, and they need you to save them.**
 
-[Website](https://arushish5-cyber.github.io/impact/) · [Play now](https://arushish5-cyber.github.io/impact/play/) · [Slides](https://arushish5-cyber.github.io/impact/#slides) · [Demo video](https://arushish5-cyber.github.io/impact/#video) · [Run it](#run-it)
+[**▶ Watch the demo video**](https://arushish5-cyber.github.io/impact/#video) · [Website](https://arushish5-cyber.github.io/impact/) · [Play now](https://arushish5-cyber.github.io/impact/play/) · [Slides](https://arushish5-cyber.github.io/impact/#slides) · [Demo video](https://arushish5-cyber.github.io/impact/#video) · [Run it](#run-it)
 
 *Agents for Impact Hackathon · Nov 23, 2026 · AWS Loft*
 
@@ -26,7 +26,7 @@
 
 ## How we used our sponsors
 
-Every sponsor below is wired into the running game and makes a real call. Without any one of them, a core part of Impact stops working.
+Every sponsor below (Bruin, BAND, Telem, Runware, Glasser) is wired into the running game and makes a real call. Without any one of them, a core part of Impact stops working.
 
 ### Bruin · the agents' senses and their auditor
 - **What it does:** a Bruin pipeline (9 assets, 33 quality checks) pulls **live air quality for Los Angeles** from Open-Meteo and builds `daily_spawn`, the table every agent reads on every tick. It also recomputes every player's footprint from cited factors (`footprint_daily`) and audits every agent decision (`agent_report`).
@@ -47,6 +47,11 @@ Every sponsor below is wired into the running game and makes a real call. Withou
 - **What it does:** each character speaks with its own Runware text-to-speech voice: Mossling (Pixie), Ripplet (Sarah), Frostbun (Olivia), Sunfox (Timothy), Smog Baron (Hades). They talk during showdowns, the Baron Duel, Trash Dash and when they cheer your name. Every run also ends with a storybook postcard of the final planet, posted to the Feed and the BAND room.
 - **Why it matters:** the agents feel like characters, not log lines. Images stay on the side (Feed and postcards); the game itself is the live 3D planet.
 - **Cost:** about $0.002 per voice line and $0.006 per postcard, cached per line and per world state.
+
+### Glasser · from the game to a real bin
+- **What it does:** after you catch a litter critter, **Bin it nearby** asks Glasser for the closest real drop-off for that kind of trash (recycling center, e-waste, plastic bags, paper, tires) around your GPS position, using Glasser's Serper Google Maps endpoint ($0.003 per call, paid from our Glasser workspace).
+- **Why it matters:** the game doesn't stop at a virtual catch. It points you to a real place you can walk to today, and "I binned it there" logs the real action for seeds.
+- **See it:** Trash Catch → catch a critter → Bin it nearby. Example live results: Glendale Recycling Center, STS Electronic Recycling, G & P Recycling Center (Los Angeles).
 
 ## What it is
 
