@@ -1,7 +1,7 @@
 // Raids: the Clash-of-Clans loop. The litter critters you caught are your squad. Pick a rival planet, send up to 3
 // critters, and they battle its smog towers. Tap POWER when it's charged. Win to smash their towers and loot seeds.
 // While you're away, rivals raid you back, and you get a revenge button.
-import { CRITTERS, loadDex, critterURL } from './catch.js';
+import { CRITTERS, loadDex, critterURL, loadGear, GEAR } from './catch.js';
 
 const STATS = { common: [10, 34], uncommon: [14, 40], rare: [19, 48], legendary: [28, 64] };
 const RIVALS = [
@@ -13,6 +13,11 @@ const LOG_KEY = 'impact.raids';
 const load = () => { try { return JSON.parse(localStorage.getItem(LOG_KEY)) || {}; } catch (e) { return {}; } };
 const save = (r) => { try { localStorage.setItem(LOG_KEY, JSON.stringify(r)); } catch (e) { /* ignore */ } };
 
+function gearBonus() {
+  const g = loadGear(); let atk = 0, hp = 0;
+  for (const [id, n] of Object.entries(g)) { const x = GEAR[id]; if (x) { atk += x.atk * Math.min(3, n); hp += x.hp * Math.min(3, n); } }
+  return { atk: Math.min(20, atk), hp: Math.min(40, hp) };
+}
 function squadOf() {
   const d = loadDex();
   const owned = CRITTERS.filter((c) => d[c.id]).map((c) => ({ c, n: d[c.id], evo: d[c.id] >= 3 }));
@@ -42,6 +47,7 @@ export function raidHubHTML(faceURL, AG) {
   const pend = r.pending;
   return `${pend ? `<div class="rv"><img src="${faceURL(AG.baron, 80)}" alt=""><div><b>You got raided!</b><p>${pend.name} smashed your towers while you were away and took ${pend.lost} seeds.</p><button class="btn" data-raid="${pend.by}" data-revenge="1">Get revenge</button></div></div>` : ''}
     <h3>Your squad</h3>
+    ${(() => { const g = loadGear(), ids = Object.keys(g); const b = gearBonus(); return ids.length ? `<div class="gear">${ids.map((id) => `<span>${GEAR[id] ? GEAR[id].name : id} ×${g[id]}</span>`).join('')}<em>Squad bonus: +${b.atk} attack · +${b.hp} health</em></div>` : '<p class="small muted">Scan real trash in Trash Catch to earn equipment that powers up your whole squad.</p>'; })()}
     ${sq.length ? `<div class="sq">${sq.map((s) => `<div class="sq-c ${s.c.rarity}"><img src="${critterURL(s.c, 80, s.evo)}" alt=""><b>${s.evo ? s.c.evo : s.c.name}</b><small>atk ${Math.round(STATS[s.c.rarity][0] * (s.evo ? 1.5 : 1))} · hp ${Math.round(STATS[s.c.rarity][1] * (s.evo ? 1.5 : 1))}</small></div>`).join('')}</div>`
       : `<div class="sq-empty"><p>No critters yet. Catch litter critters in <b>Trash Catch</b> to build your squad, or take a starter.</p><button class="btn" id="rStarter">Take starters: Bottle Bob + Can Goblin</button></div>`}
     <h3>Raid a planet</h3>
@@ -56,7 +62,8 @@ export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge }) {
   const rival = RIVALS.find((x) => x.id === rivalId) || RIVALS[0];
   const sq = squadOf().sort((a, b) => STATS[b.c.rarity][0] - STATS[a.c.rarity][0]).slice(0, 3);
   if (!sq.length) return false;
-  const mine = sq.map((s, i) => { const [a, h] = STATS[s.c.rarity]; const k = s.evo ? 1.5 : 1; return { i, name: s.evo ? s.c.evo : s.c.name, img: critterURL(s.c, 120, s.evo), atk: Math.round(a * k), hp: Math.round(h * k), max: Math.round(h * k) }; });
+  const gb = gearBonus();
+  const mine = sq.map((s, i) => { const [a, h] = STATS[s.c.rarity]; const k = s.evo ? 1.5 : 1; const hp = Math.round(h * k) + gb.hp; return { i, name: s.evo ? s.c.evo : s.c.name, img: critterURL(s.c, 120, s.evo), atk: Math.round(a * k) + gb.atk, hp, max: hp }; });
   const foes = rival.towers.map((t, i) => {
     const boss = t === 'Smog Baron';
     const hp = boss ? 60 + rival.lvl * 10 : 16 + rival.lvl * 9;

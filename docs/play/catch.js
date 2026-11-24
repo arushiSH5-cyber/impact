@@ -65,12 +65,42 @@ export function dexHTML() {
     }).join('')}</div>`;
 }
 
+
+// ---------------------------------------------------------------- real trash detection (AI runs in the browser)
+// COCO-SSD (TensorFlow.js) looks at the live camera. A real bottle, cup, bag, paper or cutlery in view summons its
+// critter, and catching it earns equipment for Planet Raids. Nothing leaves the phone.
+const REAL = {
+  bottle: ['bottle', 'plastic bottle'], 'wine glass': ['bottle', 'glass bottle'], cup: ['cup', 'cup'],
+  handbag: ['bag', 'bag'], backpack: ['bag', 'bag'], suitcase: ['bag', 'bag'], book: ['wrapper', 'paper'],
+  fork: ['straw', 'plastic cutlery'], knife: ['straw', 'plastic cutlery'], spoon: ['straw', 'plastic cutlery'],
+  'cell phone': ['can', 'e-waste'], remote: ['can', 'e-waste'], mouse: ['can', 'e-waste'], keyboard: ['can', 'e-waste'],
+  'sports ball': ['tire', 'rubber ball'], frisbee: ['tire', 'plastic disc'],
+};
+export const GEAR = {
+  bottle: { name: 'Bottle Blaster', atk: 4, hp: 0 }, cup: { name: 'Cup Cannon', atk: 4, hp: 0 }, bag: { name: 'Bag Glider', atk: 0, hp: 10 },
+  wrapper: { name: 'Paper Shield', atk: 0, hp: 8 }, straw: { name: 'Fork Lance', atk: 5, hp: 0 }, can: { name: 'Circuit Armor', atk: 2, hp: 8 },
+  tire: { name: 'Bounce Armor', atk: 0, hp: 14 }, star: { name: 'Golden Crown', atk: 8, hp: 10 },
+};
+const GKEY = 'impact.gear';
+export function loadGear() { try { return JSON.parse(localStorage.getItem(GKEY)) || {}; } catch (e) { return {}; } }
+function addGear(id) { const g = loadGear(); g[id] = (g[id] || 0) + 1; try { localStorage.setItem(GKEY, JSON.stringify(g)); } catch (e) { /* ignore */ } return GEAR[id]; }
+let detector = null, detLoading = null;
+function addScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+function loadDetector() {
+  if (detector) return Promise.resolve(detector);
+  if (!detLoading) detLoading = addScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js')
+    .then(() => addScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js'))
+    .then(() => window.cocoSsd.load({ base: 'lite_mobilenet_v2' })).then((m) => (detector = m));
+  return detLoading;
+}
+
 // ---------------------------------------------------------------- the catch screen
 export function startCatch({ onCatch, onReal, speak }) {
   const root = document.createElement('div');
   root.className = 'catch';
   root.innerHTML = `<video playsinline muted autoplay></video><div class="c-park"></div><canvas></canvas>
     <div class="c-top"><span class="c-name"></span><button class="c-x" aria-label="Close">✕</button></div>
+    <div class="c-scan">AI scanner: point your camera at real trash</div>
     <div class="c-hint">Flick the bin up at the critter!</div>
     <div class="c-result" hidden></div>`;
   document.body.appendChild(root);
@@ -79,7 +109,7 @@ export function startCatch({ onCatch, onReal, speak }) {
   let stream = null;
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      .then((s) => { stream = s; video.srcObject = s; root.classList.add('cam'); })
+      .then((s) => { stream = s; video.srcObject = s; root.classList.add('cam'); startScan(); })
       .catch(() => { /* no camera: drawn park background */ });
   }
   const dpr = Math.min(2, devicePixelRatio || 1);
@@ -89,11 +119,44 @@ export function startCatch({ onCatch, onReal, speak }) {
 
   // pick a critter by rarity
   const total = CRITTERS.reduce((a, c) => a + RARITY[c.rarity].w, 0);
-  let r = Math.random() * total, crit = CRITTERS[0];
+  let r = Math.random() * total, crit = CRITTERS[0], realFrom = null, box = null;
   for (const c of CRITTERS) { r -= RARITY[c.rarity].w; if (r <= 0) { crit = c; break; } }
   const dex = loadDex();
-  const evolvedNow = (dex[crit.id] || 0) >= 3;
-  $('.c-name').innerHTML = `<b>${evolvedNow ? crit.evo : crit.name}</b><small class="${crit.rarity}">${crit.rarity}</small>`;
+  let evolvedNow = (dex[crit.id] || 0) >= 3;
+  const nameTag = () => { $('.c-name').innerHTML = `<b>${evolvedNow ? crit.evo : crit.name}</b><small class="${crit.rarity}">${realFrom ? 'from real ' + realFrom : crit.rarity}</small>`; };
+  nameTag();
+  // live detection loop: real trash in view summons its critter right next to it
+  async function startScan() {
+    const sc = $('.c-scan');
+    sc.textContent = 'AI scanner: loading…';
+    try { await loadDetector(); } catch (e) { sc.textContent = 'AI scanner unavailable on this connection'; return; }
+    sc.textContent = 'AI scanner: point your camera at real trash';
+    const loop = async () => {
+      if (!document.body.contains(root) || done) return;
+      try {
+        const preds = await detector.detect(video);
+        const hit = preds.filter((p) => REAL[p.class] && p.score > 0.5).sort((a, b) => b.score - a.score)[0];
+        if (hit) {
+          // map the video box (object-fit: cover) to screen pixels
+          const vw = video.videoWidth, vh = video.videoHeight, k = Math.max(W / vw, H / vh), ox = (W - vw * k) / 2, oy = (H - vh * k) / 2;
+          box = { x: hit.bbox[0] * k + ox, y: hit.bbox[1] * k + oy, w: hit.bbox[2] * k, h: hit.bbox[3] * k, label: `${REAL[hit.class][1]} · ${Math.round(hit.score * 100)}%`, t: performance.now() };
+          sc.textContent = `Spotted real ${REAL[hit.class][1]}!`;
+          sc.classList.add('found');
+          if (!realFrom && !C.caught) {
+            crit = CRITTERS.find((c) => c.id === REAL[hit.class][0]) || crit;
+            realFrom = REAL[hit.class][1];
+            evolvedNow = (loadDex()[crit.id] || 0) >= 3;
+            nameTag();
+            C.x = Math.max(C.size / 2, Math.min(W - C.size / 2, box.x + box.w / 2));
+            for (let i = 0; i < 18; i++) sparks.push({ x: C.x, y: C.y, vx: (Math.random() - 0.5) * 7, vy: -Math.random() * 6, l: 1, c: '#fff', e: '✨' });
+            speak && speak('ripplet', 'A wild litter critter appeared!');
+          }
+        }
+      } catch (e) { /* keep scanning */ }
+      setTimeout(loop, 450);
+    };
+    loop();
+  }
   speak && speak('ripplet', 'A wild litter critter appeared!');
 
   const C = { x: W / 2, y: H * 0.38, size: Math.min(W, H) * 0.32, t: 0, dodge: 0, caught: false, gone: false };
@@ -134,6 +197,13 @@ export function startCatch({ onCatch, onReal, speak }) {
       drawCritter(ctx, crit, C.size, C.t, evolvedNow);
       ctx.restore();
     }
+    if (box && performance.now() - box.t < 1500) {
+      ctx.save(); ctx.strokeStyle = '#ffd34d'; ctx.lineWidth = 5; ctx.setLineDash([14, 10]); ctx.lineDashOffset = -C.t * 40;
+      ctx.beginPath(); ctx.roundRect(box.x, box.y, box.w, box.h, 18); ctx.stroke();
+      ctx.setLineDash([]); ctx.font = '800 15px Nunito, system-ui'; const tw = ctx.measureText(box.label).width + 18;
+      ctx.fillStyle = '#ffd34d'; ctx.beginPath(); ctx.roundRect(box.x, Math.max(4, box.y - 30), tw, 26, 13); ctx.fill();
+      ctx.fillStyle = '#2b2a26'; ctx.fillText(box.label, box.x + 9, Math.max(4, box.y - 30) + 18); ctx.restore();
+    }
     // thrown bin
     if (ball) {
       ball.x += ball.vx * dt * 60; ball.y += ball.vy * dt * 60; ball.vy += 0.55 * dt * 60; ball.s = Math.max(0.45, ball.s - dt * 0.7); ball.spin += dt * 12;
@@ -155,7 +225,8 @@ export function startCatch({ onCatch, onReal, speak }) {
     for (let i = 0; i < 26; i++) sparks.push({ x: C.x, y: C.y, vx: (Math.random() - 0.5) * 8, vy: -Math.random() * 7, l: 1.2, c: '#fff', e: ['✨', '⭐', '💚'][i % 3] });
     const d = loadDex(); d[crit.id] = (d[crit.id] || 0) + 1; saveDex(d);
     const n = d[crit.id], evolved = n === 3;
-    const pts = RARITY[crit.rarity].pts;
+    const pts = RARITY[crit.rarity].pts * (realFrom ? 2 : 1);
+    const gear = realFrom ? addGear(crit.id) : null;
     onCatch && onCatch(crit, pts, n);
     speak && speak('ripplet', evolved ? 'Whoa! It evolved!' : 'Gotcha! Into the bin you go!');
     done = true;
@@ -164,6 +235,7 @@ export function startCatch({ onCatch, onReal, speak }) {
       box.hidden = false;
       box.innerHTML = `<img src="${critterURL(crit, 140, n >= 3)}" alt=""><h2>${evolved ? `Evolved: ${crit.evo}!` : `Caught ${crit.name}!`}</h2>
         <p><span class="pill-r ${crit.rarity}">${crit.rarity}</span> +${pts} points · ×${n} in your Trashdex${n < 3 ? ` · ${3 - n} more to evolve` : ''}</p>
+        ${gear ? `<div class="c-gear"><b>Equipment earned: ${gear.name}</b><span>${gear.atk ? `+${gear.atk} attack` : ''}${gear.atk && gear.hp ? ' · ' : ''}${gear.hp ? `+${gear.hp} health` : ''} for your whole raid squad. Scanned from a real ${realFrom}.</span></div>` : ''}
         <div class="c-real"><b>Now catch a real one.</b> Pick up a piece of litter near you, bin it and snap it: that heals the ocean for your whole street and earns real seeds.</div>
         <button class="btn big c-bin">I binned a real one</button>
         <div class="c-row"><button class="btn ghost c-next">Catch another</button><button class="btn ghost c-done">Done</button></div>`;
