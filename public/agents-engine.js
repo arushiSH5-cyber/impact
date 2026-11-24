@@ -554,12 +554,12 @@
     for (const c of Object.keys(b)) use[c] = loggers.reduce((sum, p) => sum + p.led[c], 0) / n;
     const ratio = {};
     for (const c of Object.keys(b)) ratio[c] = use[c] / b[c];
-    const data = Object.keys(b).map((c) => `${c} ${c === 'water' || c === 'stuff' ? Math.round(use[c]) : use[c].toFixed(1)}/${b[c]}`).join(' · ');
+    const data = Object.keys(b).filter((c) => c !== 'food').map((c) => `${c} ${c === 'water' || c === 'stuff' ? Math.round(use[c]) : use[c].toFixed(1)}/${b[c]}`).join(' · ');
     const out = [];
     out.push(log(S, {
       agent: 'world', k: 'council', act: "COUNCIL MEETING: rebalancing tomorrow's budget",
       why: `Street average today (${loggers.length} player${loggers.length === 1 ? '' : 's'} logging): ${data}.`,
-      data, src: ["players' real logs", 'emission factors (EPA, Poore & Nemecek)'],
+      data, src: ["players' real logs", 'emission factors (EPA)'],
     }));
 
     // the most over-budget category asks for help; only food and travel share a unit (kg CO2e), so only they trade

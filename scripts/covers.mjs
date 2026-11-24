@@ -6,7 +6,9 @@ import crypto from 'node:crypto';
 const OUT = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'public', 'art');
 fs.mkdirSync(OUT, { recursive: true });
 const STYLE = 'cute cozy hand-drawn storybook illustration, pastel colors, thick ink outlines, soft lighting, no text, no letters';
+const ONLY = process.argv[2];
 const COVERS = {
+  raid: 'a squad of cute doodle litter monsters (a smiling plastic bottle, a grinning soda can, a ghostly plastic bag) charging across space toward a small grey smoggy planet with purple smog towers, sparkly attack bursts, playful clash-style battle scene',
   siege: 'a tiny round low-poly planet in space being defended by three cute round guardian creatures (a green leaf sprite, a blue axolotl, a white bunny) shooting sparkly lasers at spiky purple smog bombs, a grumpy cartoon villain blob with a top hat and monocle in the background',
   catch: 'a cute park at sunset with funny doodle litter monsters (a smiling plastic bottle, a grinning soda can, a ghostly plastic bag) peeking from bushes, a green recycling bin flying through the air to catch them',
   dash: 'a cheerful blue axolotl and a green leaf sprite catching falling plastic bottles and cans into bins on a sparkling beach, a sneaky top-hat smog villain dropping smog bombs from a cloud above',
@@ -14,6 +16,7 @@ const COVERS = {
 };
 let total = 0;
 for (const [id, scene] of Object.entries(COVERS)) {
+  if (ONLY && id !== ONLY) continue;
   const r = await fetch('https://api.runware.ai/v1', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.RUNWARE_API_KEY },

@@ -4,6 +4,7 @@ import { createGlobe } from './globe.js';
 import { faceURL } from './faces.js';
 import { startSiege } from './siege.js';
 import { startCatch, dexHTML, CRITTERS, critterURL, loadDex } from './catch.js';
+import { raidHubHTML, startRaid, checkRaided, giveStarter } from './raid.js';
 
 const IA = window.ImpactAgents;
 const $ = (s) => document.querySelector(s);
@@ -618,9 +619,11 @@ TABS.games = {
     const game = (id, art, tag, title, what, btn, cls = '') => `<article class="gm ${cls}" id="${id}" role="button" tabindex="0">
       <div class="gm-art" style="background-image:url(art/${art}.jpg)"><span class="gm-tag">${tag}</span></div>
       <div class="gm-body"><h3>${title}</h3><p>${what}</p><span class="btn">${btn}</span></div></article>`;
-    return `<p class="gm-intro">Pick a game. Every game heals the shared planet. The real-world ones also earn seeds.</p>
-      ${game('gSiege', 'siege', 'Main game · 3D', 'Smog Siege', 'Smog bombs are falling on the planet. Tap them before they land. Your guardians help. Beat the Baron boss.', 'Play', 'main')}
-      ${game('gCatch', 'catch', 'Real world', 'Trash Catch', `Catch cute litter monsters with your camera, then bin a real piece for seeds. Trashdex: ${caught} caught.`, 'Catch')}
+    return `<div class="loop2"><span><b>1</b> Catch cute trash critters</span><i>→</i><span><b>2</b> They become your squad</span><i>→</i><span><b>3</b> Raid rival planets</span></div>
+      ${game('gCatch', 'catch', 'Step 1 · real world', 'Trash Catch', `Litter critters hide around you. Flick the bin to catch them. Then bin a real piece for seeds. Your Trashdex: ${caught} caught.`, 'Catch', 'main')}
+      ${game('gRaid', 'raid', 'Step 2 · raid', 'Planet Raids', 'Send your critter squad to smash a rival planet\'s smog towers and loot their seeds. Got raided? Take revenge.', 'Raid', 'main')}
+      <h3 class="gm-h">More games</h3>
+      ${game('gSiege', 'siege', '3D', 'Smog Siege', 'Smog bombs are falling on the planet. Tap them before they land. Your guardians help. Beat the Baron boss.', 'Play')}
       <div class="gm-row">
         ${game('gDash', 'dash', 'Quick · 45 s', 'Trash Dash', 'Catch falling trash with Ripplet. Dodge bombs.', 'Play', 'mini')}
         ${game('gDuel', 'duel', 'Quick · 3 rounds', 'Baron Duel', 'Leaf, Wave, Fire vs the Baron.', 'Play', 'mini')}
@@ -632,6 +635,7 @@ TABS.games = {
     const on = (id, fn) => { const el = $('#' + id); if (!el) return; el.onclick = fn; el.onkeydown = (e) => { if (e.key === 'Enter') fn(); }; };
     on('gSiege', playSiege);
     on('gCatch', playCatch);
+    on('gRaid', () => openSheet('raid'));
     on('gDash', () => openSheet('dash'));
     on('gDuel', () => openSheet('duel'));
     on('gDex', () => openSheet('dex'));
@@ -661,6 +665,38 @@ TABS.dex = {
   },
   mount() { $('#dxGo').onclick = playCatch; $('#dxHunt').onclick = litterHunt; },
 };
+
+// ------------------------------------------------------------------ Planet Raids (public/raid.js)
+function raidWin(rival, loot) {
+  confetti();
+  if (W && me && W.players[me.id]) W.players[me.id].seeds = mySeeds() + loot; // solo world: loot goes straight in
+  if (me && mode === 'online') api('api/act', { id: me.id, act: { label: `smashed ${rival.name} in a Planet Raid`, deltas: { forest: 1, ocean: 1 }, raid: loot, real: false } });
+  toast(`+${loot} seeds looted from ${rival.name}!`);
+}
+TABS.raid = {
+  title: 'Planet Raids',
+  html() { return raidHubHTML(faceURL, IA.AG); },
+  mount() {
+    const st = $('#rStarter');
+    if (st) st.onclick = () => { giveStarter(); renderSheet(false); toast('Bottle Bob and Can Goblin joined your squad!'); };
+    document.querySelectorAll('#sheetB [data-raid]').forEach((b) => (b.onclick = () => {
+      const ok = startRaid(b.dataset.raid, { faceURL, AG: IA.AG, speak, onWin: raidWin, revenge: !!b.dataset.revenge });
+      if (!ok) toast('Catch a critter first (or take the starter)');
+    }));
+  },
+};
+let raidChecked = false;
+function raidedNotice() {
+  if (raidChecked || !me) return;
+  raidChecked = true;
+  const ev = checkRaided();
+  if (!ev) return;
+  modal(`<img class="big-av" src="${faceURL(IA.AG.baron, 160)}" alt=""><h2>You got raided!</h2>
+    <p>While you were away, <b>${esc(ev.name)}</b> smashed your towers and took ${ev.lost} seeds.</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="revB">Get revenge</button><button class="btn ghost" data-close>Later</button></div>`);
+  $('#revB').onclick = () => { closeModal(); openSheet('raid'); };
+}
+setTimeout(raidedNotice, 4000);
 
 // ------------------------------------------------------------------ Smog Siege (3D flagship, public/siege.js)
 function playSiege() {
