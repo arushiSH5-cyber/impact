@@ -798,6 +798,7 @@ function dashRun() {
   const img = (d) => { const i = new Image(); i.src = faceURL(d, 96); return i; };
   const meImg = new Image(); meImg.src = myFace(96);
   const rip = img(IA.AG.ripplet), bar = img(IA.AG.baron);
+  const beach = new Image(); beach.src = 'art/bg-beach.jpg'; // Runware-painted beach
   const LITTER = ['🥤', '🥫', '🛍️', '🧴', '📦', '🍾'];
   const P = { x: W2 * 0.3, w: 70 }, A = { x: W2 * 0.7, w: 70, say: '', sayT: 0 };
   const baron = { x: W2 / 2, dir: 1 };
@@ -846,8 +847,8 @@ function dashRun() {
     }
     items = items.filter((i) => !i.dead);
     // draw: sea-to-sky background
-    const g = ctx.createLinearGradient(0, 0, 0, H2); g.addColorStop(0, '#2c2f6e'); g.addColorStop(0.6, '#5a8fd8'); g.addColorStop(1, '#8ee3ff');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W2, H2);
+    if (beach.complete && beach.naturalWidth) { const k = Math.max(W2 / beach.naturalWidth, H2 / beach.naturalHeight); ctx.drawImage(beach, (W2 - beach.naturalWidth * k) / 2, (H2 - beach.naturalHeight * k) / 2, beach.naturalWidth * k, beach.naturalHeight * k); }
+    else { const g = ctx.createLinearGradient(0, 0, 0, H2); g.addColorStop(0, '#2c2f6e'); g.addColorStop(0.6, '#5a8fd8'); g.addColorStop(1, '#8ee3ff'); ctx.fillStyle = g; ctx.fillRect(0, 0, W2, H2); }
     ctx.fillStyle = '#3fb2ff'; ctx.beginPath(); ctx.moveTo(0, H2 - 34);
     for (let x = 0; x <= W2; x += 20) ctx.lineTo(x, H2 - 34 + Math.sin(x / 30 + now / 300) * 5);
     ctx.lineTo(W2, H2); ctx.lineTo(0, H2); ctx.fill();

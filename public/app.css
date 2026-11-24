@@ -518,3 +518,15 @@ body.covered #huntFab { display: none; }
 .r-field { top: 168px !important; }
 .c-cond { position: absolute; left: 12px; right: 12px; bottom: 150px; } .c-cond .cond { grid-template-columns: 1fr 1fr; } .c-cond .cc { font-size: 11px; padding: 4px 8px; }
 .c-hint { bottom: 250px !important; }
+
+/* ---- painted scenes (Runware) */
+.catch .c-park { background: url(art/bg-park.jpg) center / cover no-repeat !important; }
+.catch .c-park::before { display: none; }
+.raid { background-size: cover !important; background-position: center !important; }
+.raid .ru img { filter: drop-shadow(0 0 12px rgba(255,255,255,.55)) drop-shadow(0 8px 0 rgba(0,0,0,.25)); }
+.rp-planet { width: 64px !important; height: 64px !important; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px #fff, 0 6px 14px rgba(40,30,90,.35) !important; }
+.rp-planet::after { display: none; }
+.duel { background: linear-gradient(rgba(253,251,243,.0), rgba(253,251,243,.0)); }
+.duel-score { background: linear-gradient(rgba(253,251,243,.82), rgba(253,251,243,.82)), url(art/bg-stage.jpg) center / cover !important; padding: 14px 12px !important; }
+.dash { background: url(art/bg-beach.jpg) center / cover !important; }
+.r-power { left: 20px !important; right: 20px; width: auto !important; transform: none !important; margin: 0 auto; max-width: 340px; }

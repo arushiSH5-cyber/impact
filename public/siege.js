@@ -25,9 +25,11 @@ export function startSiege({ agents, myFace, onEnd, speak, say, cond, condHTML, 
   // ---------------------------------------------------------------- scene
   const cv = $('canvas');
   const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+  let composer = null; // bloom glow, set once the post-processing modules load
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x141a3d);
+  new THREE.TextureLoader().load('art/bg-space.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; scene.background = t; }); // Runware-painted nebula
   const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
   cam.position.set(0, 0, 9);
   scene.add(new THREE.HemisphereLight(0xfff4e0, 0x334477, 1.3));
@@ -96,9 +98,9 @@ export function startSiege({ agents, myFace, onEnd, speak, say, cond, condHTML, 
   boss.visible = false; scene.add(boss);
 
   // bombs, seeds, particles
-  const bombGeo = new THREE.IcosahedronGeometry(.22, 0), bombMat = new THREE.MeshToonMaterial({ color: 0x6d5f86, emissive: 0x2a1840 });
+  const bombGeo = new THREE.IcosahedronGeometry(.22, 0), bombMat = new THREE.MeshToonMaterial({ color: 0x8a6fc0, emissive: 0x6a2aa0 });
   const spikeGeo = new THREE.ConeGeometry(.06, .18, 5);
-  const seedGeo = new THREE.OctahedronGeometry(.2, 0), seedMat = new THREE.MeshToonMaterial({ color: 0xffd34d, emissive: 0x806010 });
+  const seedGeo = new THREE.OctahedronGeometry(.2, 0), seedMat = new THREE.MeshToonMaterial({ color: 0xffd34d, emissive: 0xffb020 });
   const hitGeo = new THREE.SphereGeometry(.55, 8, 6), hitMat = new THREE.MeshBasicMaterial({ visible: false });
   const things = [];
   function spawn(kind) {
@@ -196,10 +198,23 @@ export function startSiege({ agents, myFace, onEnd, speak, say, cond, condHTML, 
   }
 
   // ---------------------------------------------------------------- loop
-  function size() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.position.z = w < h ? 11 : 8.5; cam.updateProjectionMatrix(); }
+  function size() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); if (composer) composer.setSize(w, h); cam.aspect = w / h; cam.position.z = w < h ? 11 : 8.5; cam.updateProjectionMatrix(); }
   addEventListener('resize', size); size(); paint(hp);
   const clock = new THREE.Clock();
   let raf = 0;
+  Promise.all([
+    import('https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js'),
+    import('https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js'),
+    import('https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js'),
+    import('https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/OutputPass.js'),
+  ]).then(([{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }]) => {
+    const c = new EffectComposer(renderer);
+    c.addPass(new RenderPass(scene, cam));
+    c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.4, 0.45, 0.82));
+    c.addPass(new OutputPass());
+    c.setSize(innerWidth, innerHeight);
+    composer = c;
+  }).catch(() => { /* plain rendering */ });
   function frame() {
     raf = requestAnimationFrame(frame);
     const dt = Math.min(.05, clock.getDelta()), t = clock.elapsedTime;
@@ -266,7 +281,7 @@ export function startSiege({ agents, myFace, onEnd, speak, say, cond, condHTML, 
     shake = Math.max(0, shake - dt);
     cam.position.x = (Math.random() - .5) * shake * .6; cam.position.y = (Math.random() - .5) * shake * .6;
     cam.lookAt(0, 0, 0);
-    renderer.render(scene, cam);
+    if (composer) composer.render(); else renderer.render(scene, cam);
   }
   frame();
 

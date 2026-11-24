@@ -51,7 +51,7 @@ export function raidHubHTML(faceURL, AG) {
     ${sq.length ? `<div class="sq">${sq.map((s) => `<div class="sq-c ${s.c.rarity}"><img src="${critterURL(s.c, 80, s.evo)}" alt=""><b>${s.evo ? s.c.evo : s.c.name}</b><small>atk ${Math.round(STATS[s.c.rarity][0] * (s.evo ? 1.5 : 1))} · hp ${Math.round(STATS[s.c.rarity][1] * (s.evo ? 1.5 : 1))}</small></div>`).join('')}</div>`
       : `<div class="sq-empty"><p>No critters yet. Catch litter critters in <b>Trash Catch</b> to build your squad, or take a starter.</p><button class="btn" id="rStarter">Take starters: Bottle Bob + Can Goblin</button></div>`}
     <h3>Raid a planet</h3>
-    ${RIVALS.map((p) => `<button class="rp" data-raid="${p.id}"><span class="rp-planet" style="--pc:${p.color}"></span><span class="rp-body"><b>${p.name}</b><small>Level ${p.lvl} · ${p.towers.length} towers · loot ${p.loot} seeds${(r.wins || {})[p.id] ? ` · smashed ×${r.wins[p.id]}` : ''}</small></span><span class="btn">Raid</span></button>`).join('')}`;
+    ${RIVALS.map((p) => `<button class="rp" data-raid="${p.id}"><img class="rp-planet" src="art/pl-${p.id}.jpg" alt=""><span class="rp-body"><b>${p.name}</b><small>Level ${p.lvl} · ${p.towers.length} towers · loot ${p.loot} seeds${(r.wins || {})[p.id] ? ` · smashed ×${r.wins[p.id]}` : ''}</small></span><span class="btn">Raid</span></button>`).join('')}`;
 }
 
 export function giveStarter() {
@@ -72,6 +72,7 @@ export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, c
   });
   const root = document.createElement('div');
   root.className = 'raid';
+  root.style.backgroundImage = `linear-gradient(rgba(20,16,50,.15), rgba(20,16,50,.55) 70%, rgba(20,16,50,.85)), url(art/bg-${rival.id}.jpg)`;
   const unit = (u, side) => `<div class="ru ${side} ${u.boss ? 'boss' : ''}" data-side="${side}" data-i="${u.i}">
       <div class="ru-hp"><i style="width:100%"></i></div>
       ${u.img ? `<img src="${u.img}" alt="">` : `<div class="tower"><span class="t-top"></span><span class="t-eyes">• •</span></div>`}
