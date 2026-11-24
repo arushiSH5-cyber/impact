@@ -16,7 +16,7 @@
 
 ---
 
-## Judge it in 60 seconds
+## Play it in 60 seconds
 
 1. **Open the app** ([play in your browser](https://arushish5-cyber.github.io/impact/play/), or the live multiplayer server) and pick a buddy. Five characters are already walking the planet and acting every 10 seconds.
 2. **Tap GAMES → Smog Siege**, the 3D flagship: smog bombs fly in from space; spin the planet and tap them, grab golden seeds to grow trees, and beat the Smog Baron boss every third wave. Your AI guardians orbit beside you and zap bombs with lasers on their own. Mini games: **Trash Dash** (catch litter with Ripplet) and **Baron Duel** (the Baron learns your moves).
@@ -102,7 +102,7 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 | Two runs, different outcomes | Agents panel → **Run it twice** (seed 42 vs 7: instant 120-tick simulations with health curves, betrayals and alliances) |
 | Booster: 3D | Three.js planet, agents, smog, orbiting debris |
 | Booster: learns between runs | `data/agent_memory.json`: per-agent action → reward running averages bias the next run ("remembers run 2: prefers to tend") |
-| Real-world impact | **Today** tab: your carbon ledger vs a budget the council sets; log trips, energy, showers, trash, bills; guardians give missions from your real log ("Travel and energy are at 10.1 kg today. You drove 40 km."). The agents never judge what people eat. |
+| Real-world impact | **Today** tab: your carbon ledger vs a budget the council sets; log trips, energy, showers, trash, bills; guardians give missions from your real log ("Travel and energy are at 10.1 kg today. You drove 40 km."). The agents never comment on what people eat. |
 | Booster: voice | Each character speaks with its own **Runware** text-to-speech voice (speaker button in the top bar, "Hear" on every character card); the browser's speech is only a fallback |
 
 ## The carbon ledger and the council
@@ -119,7 +119,7 @@ Real actions (a Litter Hunt, a walk instead of a drive, a mission) earn **seeds*
 - **Bribe showdown:** when the Smog Baron bribes Sunfox, a card pops up on every phone and Sunfox *thinks for 2 ticks*. Players outbid the Baron with seeds; the outbid goes straight into Sunfox's refuse/betray scores. Then everyone sees the result: *"Sunfox stayed loyal!"* or *"Sunfox BETRAYED everyone!"*
 - **Shield:** the Baron's next target is shown live. Seeds put a shield on that zone: it blocks up to 80% of his next attack and makes him less likely to pick it.
 - **Tap a character** on the planet to see its mood and what it wants, give it seeds, or ask it for a personal mission.
-- **Story tab:** the run as a short feed of big moments (with faces); the full decision log with reasons and sources sits under a fold for judges.
+- **Story tab:** the run as a short feed of big moments (with faces); the full decision log with reasons and sources sits under a fold.
 
 ## Games (GAMES button on the planet)
 
