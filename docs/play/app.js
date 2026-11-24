@@ -1017,7 +1017,7 @@ function welcome() {
       me = { id: 'u' + Math.random().toString(36).slice(2, 10), name: n, av: pick, profile: {} };
       store.set('me', me);
       setMe();
-      quiz(0);
+      startPlaying();
     };
   };
   draw();
@@ -1030,6 +1030,13 @@ function quiz(i) {
     <div class="opts">${opts.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join('')}</div>
     <p class="small muted">Your answers help the agents pick quests that fit your life.</p>`);
   document.querySelectorAll('[data-v]').forEach((b) => (b.onclick = () => { me.profile[key] = b.dataset.v; store.set('me', me); quiz(i + 1); }));
+}
+// no quiz: pick a buddy and you are on the planet
+async function startPlaying() {
+  if (mode === 'online') await api('api/join', me);
+  else if (W) { IA.join(W, me); receive(W); }
+  closeModal();
+  toast('Welcome! Tap Games to catch trash critters and raid planets', 4500);
 }
 async function quizDone() {
   if (mode === 'online') await api('api/join', me);
@@ -1048,7 +1055,6 @@ function setMe() {
 // ------------------------------------------------------------------ boot
 setMe();
 if (!me) welcome();
-else if (!me.profile || !me.profile.home) quiz(0);
 connect();
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 window.addEventListener('beforeunload', () => store.set('lastVisit', Date.now()));
@@ -1110,7 +1116,7 @@ TABS.today = {
 };
 function footTable(r) {
   if (!r.rows || !r.rows.length) return `<p class="small muted">No history yet. Source: ${esc(r.source)}</p>`;
-  const cols = Object.keys(r.rows[0]).filter((k) => k !== 'player_id');
+  const cols = Object.keys(r.rows[0]).filter((k) => k !== 'player_id' && !/food/.test(k));
   return `<div class="chips"><span class="chip ${r.bruin ? 'ok' : ''}">Source: ${esc(r.source)}</span></div><div class="tablewrap"><table><tr>${cols.map((k) => `<th>${esc(k.replace(/_/g, ' '))}</th>`).join('')}</tr>${r.rows.slice(0, 10).map((x) => `<tr>${cols.map((k) => `<td>${esc(x[k])}</td>`).join('')}</tr>`).join('')}</table></div>`;
 }
 async function loadFoot() {
