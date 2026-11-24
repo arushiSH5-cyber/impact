@@ -110,7 +110,24 @@ export function startCatch({ onCatch, onReal, speak, cond, condHTML, onPost, onN
   let stream = null;
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
-      .then((s) => { stream = s; video.srcObject = s; root.classList.add('cam'); startScan(); })
+      .then((s) => {
+        stream = s; video.srcObject = s;
+        // only swap the painted park for the camera once real, non-black frames arrive
+        const probe = document.createElement('canvas'); probe.width = probe.height = 16; const pc = probe.getContext('2d');
+        let tries = 0;
+        const check = () => {
+          if (!document.body.contains(root)) return;
+          if (video.videoWidth > 0) {
+            pc.drawImage(video, 0, 0, 16, 16);
+            const d = pc.getImageData(0, 0, 16, 16).data; let sum = 0;
+            for (let i = 0; i < d.length; i += 4) sum += d[i] + d[i + 1] + d[i + 2];
+            if (sum / (d.length / 4) > 30) { root.classList.add('cam'); return; }
+          }
+          if (++tries < 40) setTimeout(check, 250);
+        };
+        video.addEventListener('playing', check, { once: true }); setTimeout(check, 600);
+        startScan();
+      })
       .catch(() => { /* no camera: drawn park background */ });
   }
   const dpr = Math.min(2, devicePixelRatio || 1);
