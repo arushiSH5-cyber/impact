@@ -29,7 +29,7 @@ export function startSiege({ agents, myFace, onEnd, speak, say, cond, condHTML, 
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x141a3d);
-  new THREE.TextureLoader().load('art/bg-space.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; scene.background = t; }); // Runware-painted nebula
+  new THREE.TextureLoader().load('art/bg-universe.jpg', (t) => { t.colorSpace = THREE.SRGBColorSpace; scene.background = t; }); // Runware-painted nebula
   const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
   cam.position.set(0, 0, 9);
   scene.add(new THREE.HemisphereLight(0xfff4e0, 0x334477, 1.3));
