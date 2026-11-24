@@ -534,3 +534,6 @@ body.covered #huntFab { display: none; }
 .lvl b { font: 700 26px Gaegu, cursive; } .lvl span { font-size: 14px; color: var(--mute); }
 .cc.glasser { border-color: #f59e0b; }
 .c-near { display: block; margin: 8px auto 0; }
+
+/* main planet: Runware-painted nebula sky */
+body { background: linear-gradient(rgba(20,26,61,.35), rgba(20,26,61,.55)), url(art/bg-space.jpg) center / cover no-repeat fixed, #141a3d !important; }
