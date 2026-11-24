@@ -19,7 +19,7 @@
 ## Judge it in 60 seconds
 
 1. **Open the app** ([play in your browser](https://arushish5-cyber.github.io/impact/play/), or the live multiplayer server) and pick a buddy. Five characters are already walking the planet and acting every 10 seconds.
-2. **Tap GAMES**: play **Trash Dash** with Ripplet (an AI teammate) or the **Baron Duel** (the Baron learns your moves; your teammate reads his pattern out loud).
+2. **Tap GAMES → Smog Siege**, the 3D flagship: smog bombs fly in from space; spin the planet and tap them, grab golden seeds to grow trees, and beat the Smog Baron boss every third wave. Your AI guardians orbit beside you and zap bombs with lasers on their own. Mini games: **Trash Dash** (catch litter with Ripplet) and **Baron Duel** (the Baron learns your moves).
 3. **Wait for a showdown**: the Smog Baron bribes Sunfox live. Outbid him with seeds before Sunfox decides, on every phone at once.
 4. **Turn on voices** (speaker button in the top bar): every character talks with its own Runware voice.
 5. **Story → Every decision**: each move shows *why*, *the data it used* and *its source* (Bruin air data, Telem news).
@@ -123,6 +123,7 @@ Real actions (a Litter Hunt, a walk instead of a drive, a mission) earn **seeds*
 
 ## Games (GAMES button on the planet)
 
+- **Smog Siege** (3D flagship, co-op with AI): the Smog Baron bombs the planet in waves. Drag to spin the real 3D planet, tap bombs before they land, grab golden seeds to plant trees and heal it. Mossling, Ripplet and Frostbun orbit with you and pick their own targets, zapping the nearest bomb with lasers. Every third wave the Baron attacks in person as a boss. Combos up to x8, screen shake, wave banners, and your score heals the shared planet.
 - **Trash Dash** (real-time arcade, co-op): you and Ripplet catch falling litter while the Smog Baron flies overhead dropping smog bombs. Ripplet is an agent: it chases the best item on its half, dodges bombs and calls out your combos. Golden seeds, x2/x3 combos, 3 hearts, 45 seconds. Your score heals the ocean for everyone.
 - **Baron Duel** (co-op, AI teammate): Leaf drinks Wave, Wave puts out Fire, Fire burns Leaf. You and the guardian of the weakest zone play together against the Smog Baron. The Baron is an agent that learns: he counters the move you play most. Your teammate reads his pattern out loud ("He keeps countering your Wave, so I'm going Fire!") and picks its own move. Best of 3; a win heals that zone for everyone.
 - **Smog Pop**: pop the Baron's smog blob in 20 seconds.

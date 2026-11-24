@@ -2,6 +2,7 @@
 // agent engine in the browser when there is no server (offline, single player).
 import { createGlobe } from './globe.js';
 import { faceURL } from './faces.js';
+import { startSiege } from './siege.js';
 
 const IA = window.ImpactAgents;
 const $ = (s) => document.querySelector(s);
@@ -591,7 +592,11 @@ TABS.games = {
     const weak = IA.ZONES.filter((z) => z !== 'space').sort((a, b) => W.H[a] - W.H[b])[0];
     const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
     const card = (id, face, title, sub, tag) => `<button class="gcard" id="${id}"><img src="${faceURL(face, 96)}" alt=""><span><b>${title}</b><small>${sub}</small></span><em>${tag}</em></button>`;
-    return `<p class="small">Play with the agents. Games heal the planet a little; real-life games heal it a lot and earn seeds.</p>
+    return `<button class="feature" id="gSiege"><span class="f-tag">3D · featured</span><b>Smog Siege</b>
+        <small>The Baron is bombing the planet. Spin it, blast the smog bombs, grab golden seeds, beat the Baron boss. Your guardians zap bombs with you.</small>
+        <span class="f-faces"><img src="${faceURL(IA.AG.mossling, 72)}" alt=""><img src="${faceURL(IA.AG.ripplet, 72)}" alt=""><img src="${faceURL(IA.AG.frostbun, 72)}" alt=""><i>vs</i><img src="${faceURL(IA.AG.baron, 72)}" alt=""></span>
+        <span class="btn big">Play</span></button>
+      <h3>Mini games</h3>
       ${card('gDash', IA.AG.ripplet, 'Trash Dash', 'Catch falling litter with Ripplet, dodge the Baron\'s smog bombs. Combos, golden seeds, 45 seconds.', 'arcade · co-op')}
       ${card('gDuel', IA.AG.baron, 'Baron Duel', `Leaf · Wave · Fire vs the Smog Baron, with ${mate.name} on your team. He learns your moves.`, 'co-op · AI teammate')}
       ${card('gPop', IA.AG.ripplet, 'Smog Pop', `Pop the Baron's smog blob over the ${ZN[W.raid.zone]} in 20 seconds.`, 'arcade')}
@@ -600,6 +605,7 @@ TABS.games = {
       <h3>Powered live by</h3>${sponsorStrip()}`;
   },
   mount() {
+    $('#gSiege').onclick = playSiege;
     $('#gDuel').onclick = () => openSheet('duel');
     $('#gDash').onclick = () => openSheet('dash');
     $('#gPop').onclick = () => openSheet('play');
@@ -612,6 +618,20 @@ TABS.games = {
     };
   },
 };
+
+// ------------------------------------------------------------------ Smog Siege (3D flagship, public/siege.js)
+function playSiege() {
+  openSheet(null);
+  startSiege({
+    agents: IA.AGENTS,
+    speak,
+    onEnd: async (score, wave) => {
+      const heal = Math.min(5, Math.round(score / 150));
+      if (heal > 0 && me && mode === 'online') await api('api/act', { id: me.id, act: { label: `defended the planet in Smog Siege (wave ${wave}, ${score} points)`, deltas: { forest: heal, ocean: heal }, raid: score, real: false } });
+      if (score >= 300) confetti();
+    },
+  });
+}
 
 // ------------------------------------------------------------------ Trash Dash: real-time co-op arcade game
 // You and an AI teammate (Ripplet) catch falling litter. The Smog Baron flies overhead dropping smog bombs.
