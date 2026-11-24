@@ -93,6 +93,25 @@ function localTick(S) {
   store.set('world', S); store.set('mem', localMem);
 }
 
+// ------------------------------------------------------------------ cute tap sounds: a little "bloop" on every tap
+let AC = null;
+function bloop() {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(), f = 520 + Math.random() * 380;
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.8, t + 0.09);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t + 0.18);
+  } catch (e) { /* no audio */ }
+}
+document.addEventListener('pointerdown', (e) => { if (e.target.closest('button, [role=button], .gm, .rp, .glabel b, canvas, label')) bloop(); }, { capture: true });
+const INTRO = {
+  mossling: "Hi, I'm Mossling! Help me grow the forest back!", ripplet: "Hi, I'm Ripplet! Let's keep the ocean clean!",
+  frostbun: "Hi, I'm Frostbun. The ice needs you today!", sunfox: 'I go wherever the seeds are. Got any more?',
+  baron: 'Mwahaha. Soon this whole little planet will be grey, and all mine.',
+};
+
 // ------------------------------------------------------------------ Runware voices: the characters talk out loud
 const voiceQ = [];
 let voiceBusy = false;
@@ -102,7 +121,7 @@ async function speak(agent, text, force) {
   let url = null;
   if (mode !== 'online') {
     const v = (SNAP && SNAP.voices) || {};
-    url = v[agent + '|' + text] || (force ? v[agent + '|intro'] : null);
+    url = v[agent + '|' + text] || (INTRO[agent] === text || force ? v[agent + '|intro'] : null);
     if (!url) return;
   } else if (!HEALTH.runware) return;
   voiceQ.push({ agent, text, url });
@@ -1428,6 +1447,7 @@ function renderShow() {
 function openAgent(id) {
   const d = IA.AG[id], a = W && W.agents.find((x) => x.id === id);
   if (!d || !a) return;
+  if (INTRO[id]) speak(id, INTRO[id], true); // tap a character: it says hi in its own Runware voice
   const trustYou = me ? a.trust['h_' + me.id] || 0 : 0;
   const mood = a.energy < 25 ? 'exhausted' : id === 'baron' ? 'scheming' : d.type === 'guardian' && W.H[d.goal] < 35 ? 'worried' : 'happy';
   const want = d.type === 'guardian' ? `${ZN[d.goal]} back above 70 (now ${Math.round(W.H[d.goal])})` : id === 'sunfox' ? `more seeds (has ${a.seeds})` : 'the planet below 30';
