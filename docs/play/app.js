@@ -717,8 +717,7 @@ function condHTML(c, what) {
   chips.push(`<span class="cc runware"><b>Runware</b> character voices${c.recorded ? ' (recorded)' : ''}</span>`);
   chips.push(`<span class="cc band"><b>BAND</b> ${c.band ? 'your result posts to the room' : 'results post on the live server'}</span>`);
   chips.push(`<span class="cc glasser"><b>Glasser</b> finds the nearest real drop-off</span>`);
-  // collapsed by default so it never covers the game; tap to see what each sponsor is doing right now
-  return `<details class="cond-d"><summary>⚡ Live data · Bruin · Telem · BAND · Runware · Glasser</summary><div class="cond">${chips.join('')}</div></details>`;
+  return `<div class="cond">${chips.join('')}</div>`;
 }
 async function postResult(game, text) {
   if (mode !== 'online' || !me) return false;

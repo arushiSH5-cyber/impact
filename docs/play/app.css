@@ -537,15 +537,3 @@ body.covered #huntFab { display: none; }
 
 /* main planet: Runware-painted nebula sky */
 body { background: url(art/bg-universe.jpg) center / cover no-repeat fixed, #060b18 !important; }
-
-/* sponsor strip: one small pill, tap to expand */
-.cond-d { margin: 6px 0; text-align: left; }
-.cond-d summary { list-style: none; cursor: pointer; display: inline-block; font: 800 12px Nunito, system-ui; color: #fff; background: rgba(15,23,42,.72); border: 1.5px solid rgba(255,255,255,.35); border-radius: 999px; padding: 5px 12px; backdrop-filter: blur(6px); }
-.cond-d summary::-webkit-details-marker { display: none; }
-.cond-d[open] summary { margin-bottom: 6px; }
-.sheet .cond-d summary, #sheetB .cond-d summary, .s-card .cond-d summary { background: var(--card2); color: var(--ink); border-color: var(--line); }
-.c-cond { bottom: auto !important; top: calc(max(12px, env(safe-area-inset-top)) + 96px); left: 50% !important; right: auto !important; transform: translateX(-50%); width: min(92vw, 640px); text-align: center; }
-.c-cond .cond-d { text-align: center; }
-.c-hint { bottom: 170px !important; }
-.r-cond { top: calc(max(12px, env(safe-area-inset-top)) + 50px) !important; }
-.r-field { top: 110px !important; }
