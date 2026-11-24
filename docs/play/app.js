@@ -714,6 +714,7 @@ function dashRun() {
   const catcher = (c, it) => Math.abs(it.x - c.x) < c.w / 2 + 14 && it.y > H2 - 92 && it.y < H2 - 40;
   function frame(now) {
     if (over) return;
+    if (!document.body.contains(cv)) { over = true; return; } // player left the game screen
     const dt = Math.min(0.08, (now - last) / 1000); last = now;
     left = Math.max(0, 45 - (now - t0) / 1000);
     const speed = 1 + (45 - left) / 30; // it gets faster
