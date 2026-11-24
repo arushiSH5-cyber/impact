@@ -3,7 +3,7 @@
 import { createGlobe } from './globe.js';
 import { faceURL } from './faces.js';
 import { startSiege } from './siege.js';
-import { startCatch, dexHTML, CRITTERS, critterURL } from './catch.js';
+import { startCatch, dexHTML, CRITTERS, critterURL, loadDex } from './catch.js';
 
 const IA = window.ImpactAgents;
 const $ = (s) => document.querySelector(s);
@@ -60,11 +60,21 @@ function connect() {
 
 // offline: the same engine runs here, on its own timer, and persists in this browser
 let localMem = store.get('mem', {});
-function goOffline() {
+let SNAP = null;
+async function loadSnap() {
+  try { SNAP = await fetch('snap/snapshot.json').then((r) => (r.ok ? r.json() : null)); } catch (e) { SNAP = null; }
+  if (SNAP) {
+    // sponsors show as "recorded today" with what they really returned on our server
+    HEALTH = Object.fromEntries(Object.entries(SNAP.health || {}).map(([k, v]) => [k, Object.assign({}, v, { snap: true })]));
+  }
+}
+async function goOffline() {
   if (mode === 'offline') return;
   mode = 'offline';
+  await loadSnap();
   let S = store.get('world', null);
-  if (!S || !S.agents) S = IA.create(42, null, localMem);
+  if (!S || !S.agents) S = IA.create(42, (SNAP && SNAP.spawn) || null, localMem);
+  if (SNAP && SNAP.postcards && !(S.postcards || []).length) S.postcards = SNAP.postcards;
   const missed = Math.min(120, Math.floor((Date.now() - (S.lastTick || Date.now())) / tickMs));
   if (missed > 0) {
     const fromH = Math.round(IA.avgH(S)), fromTick = S.tick;
@@ -86,15 +96,22 @@ function localTick(S) {
 const voiceQ = [];
 let voiceBusy = false;
 async function speak(agent, text, force) {
-  if ((!voiceOn && !force) || !HEALTH.runware) return;
-  voiceQ.push({ agent, text });
+  if (!voiceOn && !force) return;
+  // no server (GitHub Pages): play the Runware clips recorded from our live server today
+  let url = null;
+  if (mode !== 'online') {
+    const v = (SNAP && SNAP.voices) || {};
+    url = v[agent + '|' + text] || (force ? v[agent + '|intro'] : null);
+    if (!url) return;
+  } else if (!HEALTH.runware) return;
+  voiceQ.push({ agent, text, url });
   if (voiceQ.length > 2) voiceQ.splice(0, voiceQ.length - 2); // never pile up old lines
   if (voiceBusy) return;
   voiceBusy = true;
   while (voiceQ.length) {
-    const { agent: ag, text: t } = voiceQ.shift();
+    const { agent: ag, text: t, url } = voiceQ.shift();
     try {
-      const r = await api('/api/voice', { agent: ag, text: t });
+      const r = url ? { url } : await api('/api/voice', { agent: ag, text: t });
       if (r && r.url) await new Promise((ok) => { const a = new Audio(r.url); a.onended = ok; a.onerror = ok; a.play().catch(ok); setTimeout(ok, 12000); });
     } catch (e) { /* voice is a nice-to-have */ }
   }
@@ -108,7 +125,7 @@ setTimeout(() => {
     voiceOn = !voiceOn; setVoiceBtn();
     store.set('voice', voiceOn);
     toast(voiceOn ? 'Voices on (Runware)' : 'Voices off');
-    if (voiceOn) speak('mossling', `Hi ${me ? me.name : 'friend'}! Let's heal the planet together!`);
+    if (voiceOn) speak('mossling', "Hi friend! Let's heal the planet together!");
   };
 }, 0);
 
@@ -260,9 +277,7 @@ function renderSheet(live) {
 $('#sheetX').onclick = () => openSheet(null);
 document.querySelectorAll('#tabbar button').forEach((b) => (b.onclick = () => (b.dataset.tab === 'log' ? composer() : openSheet(b.dataset.tab === 'globe' ? null : b.dataset.tab))));
 $('#agentsBtn').onclick = () => openSheet('agents');
-$('#gamesBtn').onclick = () => openSheet('games');
-$('#playFab').onclick = () => openSheet('games');
-$('#huntFab').onclick = () => openSheet('dex');
+$('#net').onclick = () => openSheet('neighbors');
 $('#meBtn').onclick = () => openSheet('me');
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else openSheet(null); } });
 
@@ -511,11 +526,19 @@ TABS.feed = {
     const street = W.log.filter((e) => ['human', 'quest', 'thank', 'betray', 'end'].includes(e.k)).slice(-25).reverse();
     $('#street').innerHTML = street.map((e) => `<div class="post"><div class="tag">${e.agent === 'human' ? 'Neighbor' : esc(name(e.agent))} · ${new Date(e.t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
       <h4>${esc(e.act)}</h4><div class="small muted">${esc(e.why)}</div></div>`).join('') || '<p class="muted">Nothing yet. Do something real in Go!</p>';
-    const pcBtn = HEALTH.runware && (HEALTH.runware.ok || /key set/.test(HEALTH.runware.detail || ''));
+    const pcBtn = mode === 'online' && HEALTH.runware && (HEALTH.runware.ok || /key set/.test(HEALTH.runware.detail || ''));
     const cards = (W.postcards || []).slice().reverse();
     const gallery = cards.length ? `<div class="post postcard"><div class="tag">Run postcards · painted by Runware from each run's final planet</div>${cards.map((c) => `<figure style="margin:8px 0"><img src="${esc(c.url)}" alt="Postcard of run ${c.seed}" loading="lazy"><figcaption class="small">Run ${c.seed}: ${c.status === 'won' ? 'guardians + humans won' : 'the Smog Baron won'}${c.cost != null ? ` · $${(+c.cost).toFixed(4)}` : ''}</figcaption></figure>`).join('')}</div>` : '';
     $('#pc').innerHTML = gallery + (pcBtn ? '<div class="post postcard"><div class="tag">Your world · painted live by Runware</div><button class="btn" id="pcB" style="margin-top:6px">Make my world postcard</button><div id="pcOut"></div></div>' : '');
     if (pcBtn) $('#pcB').onclick = postcard;
+    if (mode !== 'online' && SNAP) {
+      // GitHub Pages: show what Telem and BAND really returned on our live server today
+      $('#news').innerHTML = `<h3>Powered by our sponsors</h3>${sponsorStrip()}`
+        + (SNAP.news || []).map((n) => `<div class="post news"><div class="tag">Telem · captured today · ${esc(n.source)}</div>
+        <h4><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a></h4><div class="small muted">${esc(n.summary)}</div></div>`).join('');
+      $('#news').insertAdjacentHTML('beforeend', (SNAP.band || []).map((b) => `<div class="post band"><div class="tag">Posted to our BAND room today · ${esc(name(b.agent))}</div><h4>${esc(b.act)}</h4><div class="small muted">Why: ${esc(b.why)}</div></div>`).join(''));
+      return;
+    }
     const tel = HEALTH.telem && HEALTH.telem.ok;
     if (!tel) { $('#news').innerHTML = '<p class="small muted">Live news reels are off (Telem not connected on this server).</p>'; return; }
     $('#news').innerHTML = '<p class="muted small">Loading live news…</p>';
@@ -582,8 +605,8 @@ const SPONSOR_ROLES = [
 ];
 function sponsorStrip() {
   return `<div class="sstrip">${SPONSOR_ROLES.map(([k, n, what]) => {
-    const ok = HEALTH[k] && HEALTH[k].ok;
-    return `<span class="sp ${ok ? 'ok' : ''}" title="${esc(what)}"><i></i><b>${n}</b><small>${esc(what)}</small></span>`;
+    const ok = HEALTH[k] && HEALTH[k].ok, snap = HEALTH[k] && HEALTH[k].snap;
+    return `<span class="sp ${ok ? 'ok' : ''}" title="${esc(what)}"><i></i><b>${n}</b><small>${esc(what)}${snap ? ' · recorded live today' : ''}</small></span>`;
   }).join('')}</div>`;
 }
 
@@ -591,38 +614,28 @@ function sponsorStrip() {
 TABS.games = {
   title: 'Games',
   html() {
-    const weak = IA.ZONES.filter((z) => z !== 'space').sort((a, b) => W.H[a] - W.H[b])[0];
-    const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
-    const card = (id, face, title, sub, tag) => `<button class="gcard" id="${id}"><img src="${faceURL(face, 96)}" alt=""><span><b>${title}</b><small>${sub}</small></span><em>${tag}</em></button>`;
-    return `<button class="feature hunt" id="gCatch"><span class="f-tag">real world · featured</span><b>Trash Catch</b>
-        <small>Doodle litter critters hide around you. Flick the bin to catch them, fill your Trashdex, evolve them, then bin a real piece for seeds.</small>
-        <span class="f-faces">${CRITTERS.slice(0, 5).map((c) => `<img src="${critterURL(c, 72)}" alt="">`).join('')}</span>
-        <span class="btn big">Catch</span></button>
-      <button class="feature" id="gSiege"><span class="f-tag">3D · featured</span><b>Smog Siege</b>
-        <small>The Baron is bombing the planet. Spin it, blast the smog bombs, grab golden seeds, beat the Baron boss. Your guardians zap bombs with you.</small>
-        <span class="f-faces"><img src="${faceURL(IA.AG.mossling, 72)}" alt=""><img src="${faceURL(IA.AG.ripplet, 72)}" alt=""><img src="${faceURL(IA.AG.frostbun, 72)}" alt=""><i>vs</i><img src="${faceURL(IA.AG.baron, 72)}" alt=""></span>
-        <span class="btn big">Play</span></button>
-      <h3>Mini games</h3>
-      ${card('gDash', IA.AG.ripplet, 'Trash Dash', 'Catch falling litter with Ripplet, dodge the Baron\'s smog bombs. Combos, golden seeds, 45 seconds.', 'arcade · co-op')}
-      ${card('gDuel', IA.AG.baron, 'Baron Duel', `Leaf · Wave · Fire vs the Smog Baron, with ${mate.name} on your team. He learns your moves.`, 'co-op · AI teammate')}
-      ${card('gPop', IA.AG.ripplet, 'Smog Pop', `Pop the Baron's smog blob over the ${ZN[W.raid.zone]} in 20 seconds.`, 'arcade')}
-      ${card('gHunt', IA.AG.ripplet, 'Litter Hunt', 'Walk 150 m, bin litter, snap proof. Heals the ocean and earns seeds.', 'real life · seeds')}
-      ${card('gMission', mate, 'Ask for a mission', `${mate.name} gives you a real-world quest that fits your day.`, 'real life · seeds')}
-      <h3>Powered live by</h3>${sponsorStrip()}`;
+    const d = loadDex(), caught = Object.values(d).reduce((x, y) => x + y, 0);
+    const game = (id, art, tag, title, what, btn, cls = '') => `<article class="gm ${cls}" id="${id}" role="button" tabindex="0">
+      <div class="gm-art" style="background-image:url(art/${art}.jpg)"><span class="gm-tag">${tag}</span></div>
+      <div class="gm-body"><h3>${title}</h3><p>${what}</p><span class="btn">${btn}</span></div></article>`;
+    return `<p class="gm-intro">Pick a game. Every game heals the shared planet. The real-world ones also earn seeds.</p>
+      ${game('gSiege', 'siege', 'Main game · 3D', 'Smog Siege', 'Smog bombs are falling on the planet. Tap them before they land. Your guardians help. Beat the Baron boss.', 'Play', 'main')}
+      ${game('gCatch', 'catch', 'Real world', 'Trash Catch', `Catch cute litter monsters with your camera, then bin a real piece for seeds. Trashdex: ${caught} caught.`, 'Catch')}
+      <div class="gm-row">
+        ${game('gDash', 'dash', 'Quick · 45 s', 'Trash Dash', 'Catch falling trash with Ripplet. Dodge bombs.', 'Play', 'mini')}
+        ${game('gDuel', 'duel', 'Quick · 3 rounds', 'Baron Duel', 'Leaf, Wave, Fire vs the Baron.', 'Play', 'mini')}
+      </div>
+      <div class="gm-links"><button class="btn ghost" id="gDex">My Trashdex</button><button class="btn ghost" id="gHunt">Litter Hunt walk</button></div>
+      <p class="small muted gm-credit">Game art painted by Runware · voices by Runware</p>`;
   },
   mount() {
-    $('#gSiege').onclick = playSiege;
-    $('#gCatch').onclick = playCatch;
-    $('#gDuel').onclick = () => openSheet('duel');
-    $('#gDash').onclick = () => openSheet('dash');
-    $('#gPop').onclick = () => openSheet('play');
-    $('#gHunt').onclick = litterHunt;
-    $('#gMission').onclick = async () => {
-      const weak = IA.ZONES.filter((z) => z !== 'space').sort((a, b) => W.H[a] - W.H[b])[0];
-      const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
-      const r = await back('mission', 0, mate.id);
-      if (r && r.quest) { openSheet(null); globe.say(mate.id, `${me.name}! I need you!`); doQuest(r.quest.kind); }
-    };
+    const on = (id, fn) => { const el = $('#' + id); if (!el) return; el.onclick = fn; el.onkeydown = (e) => { if (e.key === 'Enter') fn(); }; };
+    on('gSiege', playSiege);
+    on('gCatch', playCatch);
+    on('gDash', () => openSheet('dash'));
+    on('gDuel', () => openSheet('duel'));
+    on('gDex', () => openSheet('dex'));
+    on('gHunt', litterHunt);
   },
 };
 
@@ -763,7 +776,7 @@ function dashRun() {
     const heal = Math.min(4, Math.round(sc / 12));
     if (heal > 0 && mode === 'online') await api('api/act', { id: me.id, act: { label: `scored ${sc} in Trash Dash with Ripplet`, deltas: { ocean: heal }, raid: sc * 5, real: false } });
     if (sc >= 20) confetti();
-    speak('ripplet', sc >= 20 ? `Wow, ${sc} points! The ocean is sparkling!` : 'Good try! Again?');
+    speak('ripplet', sc >= 20 ? 'Wow! The ocean is sparkling!' : 'Good try! Again?');
     const st = $('#dStart'); st.hidden = false;
     st.innerHTML = `<img src="${faceURL(IA.AG.ripplet, 96)}" alt=""><h2>${survived ? 'Time!' : 'Smogged!'} ${sc} points</h2>
       <p>${sc > best ? '🏆 New best! ' : ''}Ocean +${heal} for everyone on the street.</p><button class="btn big" id="dGo">Play again</button>`;
@@ -1044,7 +1057,7 @@ TABS.today = {
       ${council.length ? `<h3><svg class="dd" aria-hidden="true"><use href="#d-columns"/></svg> Latest council decisions</h3>${council.map(entryHTML).join('')}` : ''}
       <h3><svg class="dd" aria-hidden="true"><use href="#d-notebook"/></svg> Today's log</h3>${L.items.length ? L.items.slice().reverse().map((x) => `<div class="li"><span>${esc(x.label)}<small>${esc(x.src || '')}</small></span><b>${x.cat === 'water' ? Math.round(x.liters) + ' L' : x.saved ? '−' + x.saved.toFixed(2) + ' kg' : x.kg ? x.kg.toFixed(2) + ' kg' : x.cat === 'stuff' ? 'item' : '·'}</b></div>`).join('') : '<p class="small muted">Log your first thing: the agents react on their next tick.</p>'}
       <h3><svg class="dd" aria-hidden="true"><use href="#d-chart"/></svg> Street footprint history</h3><div id="footOut">${FOOT ? footTable(FOOT) : '<p class="small muted">Loading…</p>'}</div>
-      <div class="row" style="margin-top:12px"><button class="btn" id="tdHunt"><svg class="dd" aria-hidden="true"><use href="#d-map"/></svg> Litter Hunt</button><button class="btn ghost" id="tdGo">More real actions</button><button class="btn ghost" id="tdPlay">Smog Pop</button><button class="btn ghost" id="tdFeed">Feed &amp; news</button></div>`;
+      <div class="row" style="margin-top:12px"><button class="btn" id="tdHunt"><svg class="dd" aria-hidden="true"><use href="#d-map"/></svg> Litter Hunt</button><button class="btn ghost" id="tdGo">More real actions</button><button class="btn ghost" id="tdPlay">Games</button><button class="btn ghost" id="tdFeed">Feed &amp; news</button></div>`;
   },
   live() { const sc = $('#sheetB').scrollTop; $('#sheetB').innerHTML = this.html(); this.wire(); $('#sheetB').scrollTop = sc; },
   mount() { this.wire(); loadFoot(); },
@@ -1309,9 +1322,9 @@ function renderShow() {
   if (!html || key === showDismissed) { el.hidden = true; return; }
   if (el.dataset.key === key && el.dataset.seeds === String(seeds) && el.dataset.tick === String(W.tick) && !el.hidden) return;
   if (el.dataset.key !== key) {
-    if (key.startsWith('bribe')) speak('baron', `Sunfox, my dear… ${W.offer.amount} shiny seeds are yours if you look the other way.`);
+    if (key.startsWith('bribe')) speak('baron', 'Sunfox, my dear… these shiny seeds are yours if you look the other way.');
     else if (key.startsWith('res')) speak('sunfox', html.includes('stayed loyal') ? "Nope! I'm sticking with my friends!" : 'Hehe… sorry, guardians. A fox has to eat!');
-    else if (key.startsWith('threat')) speak('baron', `The ${ZN[W.threat.zone]} looks… delicious.`);
+    else if (key.startsWith('threat')) speak('baron', 'That zone looks… delicious.');
   }
   el.dataset.key = key; el.dataset.seeds = seeds; el.dataset.tick = W.tick;
   el.innerHTML = html;
@@ -1373,7 +1386,7 @@ function cheerMe(S) {
     if (e.agent === 'human' && e.who === me.id && /Completed (\w+)'s quest/.test(e.why)) {
       const name = /Completed (\w+)'s quest/.exec(e.why)[1];
       const ag = IA.AGENTS.find((x) => x.name === name);
-      if (ag) { globe.say(ag.id, `YOU DID IT, ${me.name.toUpperCase()}!`); speak(ag.id, `You did it, ${me.name}! Thank you!`); }
+      if (ag) { globe.say(ag.id, `YOU DID IT, ${me.name.toUpperCase()}!`); speak(ag.id, 'You did it! Thank you!'); }
       confetti();
     } else if (e.agent === 'human' && e.who === me.id && /Litter Hunt/.test(e.act)) {
       globe.say('ripplet', `Woo! Thanks ${me.name}!`); confetti();

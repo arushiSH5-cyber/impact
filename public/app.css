@@ -423,3 +423,24 @@ body.covered #huntFab { display: none; }
 .c-result h2 { font: 700 34px Gaegu, cursive; margin: 0; }
 .c-real { background: var(--leaf-bg); border-radius: 16px; padding: 10px 12px; margin: 10px 0; text-align: left; font-size: 15px; }
 .c-row { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+
+/* ---- Games tab: one clear place for every game */
+#tabbar .gtab .gico { display: block; font-size: 22px; line-height: 1; margin-bottom: 2px; }
+#net { cursor: pointer; }
+.gm-intro { margin: 0 0 12px; color: var(--mute); }
+.gm { background: var(--card); border: 2px solid var(--line); border-radius: 24px; overflow: hidden; margin: 0 0 14px; box-shadow: 0 6px 0 rgba(0,0,0,.08); cursor: pointer; transition: transform .12s; }
+.gm:active { transform: scale(.98); }
+.gm-art { position: relative; aspect-ratio: 16 / 9; background-size: cover; background-position: center; }
+.gm-tag { position: absolute; top: 10px; left: 10px; background: rgba(253,251,243,.95); color: var(--ink); font-size: 12px; font-weight: 900; letter-spacing: .04em; border-radius: 999px; padding: 3px 10px; }
+.gm.main .gm-tag { background: linear-gradient(135deg, #ff8fb8, #a98bff); color: #fff; }
+.gm-body { padding: 12px 14px 14px; display: grid; gap: 6px; }
+.gm-body h3 { margin: 0; font: 700 32px Gaegu, cursive; line-height: 1; }
+.gm-body p { margin: 0; color: var(--mute); font-size: 15px; line-height: 1.35; }
+.gm-body .btn { justify-self: start; }
+.gm.main { border-color: #c9b6f2; box-shadow: 0 8px 0 #c9b6f2; }
+.gm.main .gm-body h3 { font-size: 40px; }
+.gm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gm.mini .gm-body h3 { font-size: 24px; }
+.gm.mini .gm-body p { font-size: 13px; }
+.gm-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 4px 0 6px; }
+.gm-credit { text-align: center; }

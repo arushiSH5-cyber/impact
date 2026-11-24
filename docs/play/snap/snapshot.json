@@ -1,0 +1,236 @@
+{
+ "captured": "2026-11-24T00:28:19.560Z",
+ "note": "Recorded from the live Impact server with real sponsor calls. The GitHub Pages build has no server or API keys, so it replays these.",
+ "health": {
+  "bruin": {
+   "ok": true,
+   "detail": "5 zones · 2026-11-23 · built 2026-11-23 20:17 UTC"
+  },
+  "band": {
+   "ok": true,
+   "detail": "room cb12a5ac… · 114 posts out · 0 commands in · live socket on"
+  },
+  "telem": {
+   "ok": true,
+   "detail": "2 searches · 8 live items today · 5 zones cited"
+  },
+  "runware": {
+   "ok": true,
+   "detail": "10 images · total cost $0.0622"
+  }
+ },
+ "spawn": [
+  {
+   "zone": "desert",
+   "place": "Downtown LA basin",
+   "date": "2026-11-23",
+   "pm25": 20.3,
+   "temp_c": 15.1,
+   "humidity": 71,
+   "smog_pressure": 0.51,
+   "heat": 0.4,
+   "spawn_score": 0.59,
+   "source": "open-meteo (live)"
+  },
+  {
+   "zone": "forest",
+   "place": "Griffith Park",
+   "date": "2026-11-23",
+   "pm25": 20.3,
+   "temp_c": 13.8,
+   "humidity": 68,
+   "smog_pressure": 0.51,
+   "heat": 0.35,
+   "spawn_score": 0.59,
+   "source": "open-meteo (live)"
+  },
+  {
+   "zone": "ice",
+   "place": "Mt. Baldy",
+   "date": "2026-11-23",
+   "pm25": 17.7,
+   "temp_c": 6.9,
+   "humidity": 73,
+   "smog_pressure": 0.44,
+   "heat": 0.08,
+   "spawn_score": 0.65,
+   "source": "open-meteo (live)"
+  },
+  {
+   "zone": "ocean",
+   "place": "Santa Monica Bay",
+   "date": "2026-11-23",
+   "pm25": 20.3,
+   "temp_c": 15.4,
+   "humidity": 70,
+   "smog_pressure": 0.51,
+   "heat": 0.42,
+   "spawn_score": 0.59,
+   "source": "open-meteo (live)"
+  },
+  {
+   "zone": "space",
+   "place": "Low Earth orbit",
+   "date": "2026-11-23",
+   "pm25": 0,
+   "temp_c": 0,
+   "humidity": 0,
+   "smog_pressure": 0.3,
+   "heat": 0,
+   "spawn_score": 0.7,
+   "source": "constant (orbital debris)"
+  }
+ ],
+ "news": [
+  {
+   "title": "Breaking: Peak Fire reported in Los Angeles County on Nov. 23 | Sacramento Bee",
+   "url": "https://www.sacbee.com/news/california/fires/article318208880.html",
+   "summary": "# Breaking: Peak Fire reported in Los Angeles County on Nov. 23 By CA WILDFIRE BOT Updated November 23, 2026 12:29 AM Updates on California wildfires. The creation of this content included the use of AI based on templates created, reviewed ",
+   "published": "2026-11-23",
+   "source": "sacbee.com"
+  },
+  {
+   "title": "CA weather: See current snow depths, winter 2026 forecast | Sacramento Bee",
+   "url": "https://www.sacbee.com/news/weather-news/article318177454.html",
+   "summary": "# Where can I find snow in California? See current snowfall reports, winter forecast By Alexiah Syrai Olsen and Sarah Linn Updated November 23, 2026 1:49 PM Although the official start of winter is weeks away, parts of California have alrea",
+   "published": "2026-11-23",
+   "source": "sacbee.com"
+  },
+  {
+   "title": "Snowiest November Since 2010 Hits Palisades Tahoe, CA",
+   "url": "https://snowbrains.com/palisades-tahoe-snowiest-november-since-2010/",
+   "summary": "# Palisades Tahoe, CA, Hits 71 Inches for Its Snowiest November Since 2010 SnowBrains | November 23, 2026 | Industry News 71″ of fresh snow in November already! | photo: Palisades Tahoe Palisades Tahoe, California, is having its snowiest No",
+   "published": "2026-11-23",
+   "source": "snowbrains.com"
+  },
+  {
+   "title": "Snowfall in Tahoe already a quarter of last winter’s season total | TahoeDailyTribune.com",
+   "url": "https://www.tahoedailytribune.com/news/snowfall-in-tahoe-already-a-quarter-of-last-winters-season-total/",
+   "summary": "# Snowfall in Tahoe already a quarter of last winter’s season total News News | Nov 23, 2026 ###### Katelyn Welsh Follow kwelsh@tahoedailytribune.com Freshly frosted trees and meadow in South Lake Tahoe after this week's storm. Mike Peron /",
+   "published": "2026-11-23",
+   "source": "tahoedailytribune.com"
+  },
+  {
+   "title": "Dirtiest Air Right Now by City (2026) · The Honest Local",
+   "url": "https://thehonestlocal.com/rankings/dirtiest-air-now",
+   "summary": "Harrisburg, Pennsylvania has the dirtiest air right now of the 105 US cities we rank, with an AQI of 97 (AirNow, Nov 22, 2026). New York, New York is next, with an AQI of 84. By The Honest Local · 105 cities · every value links to its publi",
+   "published": "2026-11-23",
+   "source": "thehonestlocal.com"
+  },
+  {
+   "title": "Dodging space junk costs $58 million a year. Meet the developer of 'autopilot for satellites' | Fortune",
+   "url": "https://fortune.com/2026/11/23/space-junk-nasa-space-force-bqp-dodging-satellite",
+   "summary": "When NASA’s Skylab space station crashed over Western Australia in 1979, the Shire of Esperance fined the agency $400 for littering, but NASA never paid. And bills have only gotten bigger. In 1978, a Soviet satellite, Cosmos 954, scattered ",
+   "published": "2026-11-23",
+   "source": "fortune.com"
+  },
+  {
+   "title": "Mexico demands cleanup of suspected SpaceX rocket debris",
+   "url": "https://www.texastribune.org/2026/11/23/spacex-rocket-debris-beach-texas-mexico/",
+   "summary": "Mexico demands cleanup of suspected SpaceX rocket debris # Mexico demands SpaceX clean up suspected rocket debris washing ashore near Texas Suspected debris from a SpaceX rocket explosion has washed up in Mexico, prompting cleanup efforts a",
+   "published": "2026-11-23",
+   "source": "texastribune.org"
+  },
+  {
+   "title": "Newsom Says California ‘Ready’ for Fires After Expanding Firefighting Force - Newsweek",
+   "url": "https://www.newsweek.com/newsom-says-california-ready-for-fires-after-expanding-firefighting-force-12750649",
+   "summary": "After a series of deadly wildfires burned nearly 40,000 acres and destroyed thousands of homes and businesses across Los Angeles, the state of California is spending billions of dollars to try to prepare for the next wildfire season. Since ",
+   "published": "2026-11-21",
+   "source": "newsweek.com"
+  }
+ ],
+ "band": [
+  {
+   "agent": "ripplet",
+   "act": "formed an alliance with Frostbun",
+   "why": "trusts Frostbun (0.46) and the Smog Baron is a shared threat"
+  },
+  {
+   "agent": "baron",
+   "act": "polluted Desert (−4.9)",
+   "why": "Sunfox leaked that Desert is weak"
+  },
+  {
+   "agent": "frostbun",
+   "act": "asked Riya: \"Swap one short car trip for walking or biking\"",
+   "why": "Ice needs real-world help and 5 humans are on the street. Picked using Riya's profile."
+  },
+  {
+   "agent": "sunfox",
+   "act": "voted NO on the flash sale (stuff budget → 3.5)",
+   "why": "it trusts the guardians more than it wants seeds (greed 0.96)"
+  },
+  {
+   "agent": "world",
+   "act": "COUNCIL MEETING: rebalancing tomorrow's budget",
+   "why": "Street average today (0 players logging): food 0.0/6 · travel 0.0/8 · water 0/250 · stuff 0/4."
+  },
+  {
+   "agent": "frostbun",
+   "act": "formed an alliance with Mossling",
+   "why": "trusts Mossling (0.39) and the Smog Baron is a shared threat"
+  },
+  {
+   "agent": "baron",
+   "act": "polluted Desert (−2.7)",
+   "why": "Desert is weak (21), humans ignore it, and PM2.5 20.3 helps the smog"
+  },
+  {
+   "agent": "sunfox",
+   "act": "is thinking about the Baron's 19-seed bribe…",
+   "why": "the Baron's 19-seed offer is on the table and it wants to see what the humans do"
+  }
+ ],
+ "postcards": [
+  {
+   "seed": 63,
+   "status": "lost",
+   "cost": 0.00572,
+   "url": "snap/postcard-63.jpg"
+  },
+  {
+   "seed": 64,
+   "status": "won",
+   "cost": 0.00572,
+   "url": "snap/postcard-64.jpg"
+  },
+  {
+   "seed": 65,
+   "status": "won",
+   "cost": 0.00572,
+   "url": "snap/postcard-65.jpg"
+  }
+ ],
+ "voices": {
+  "baron|Sunfox, my dear… these shiny seeds are yours if you look the other way.": "snap/voice-baron-0.mp3",
+  "baron|That zone looks… delicious.": "snap/voice-baron-1.mp3",
+  "baron|Ah, a little duel. I will learn every move you make.": "snap/voice-baron-2.mp3",
+  "baron|Predictable. So very predictable.": "snap/voice-baron-3.mp3",
+  "baron|Enough games. I will grey this planet myself!": "snap/voice-baron-4.mp3",
+  "baron|Curses! This is not over!": "snap/voice-baron-5.mp3",
+  "baron|Mwahaha! The planet is mine… for now.": "snap/voice-baron-6.mp3",
+  "baron|intro": "snap/voice-baron-7.mp3",
+  "sunfox|Nope! I'm sticking with my friends!": "snap/voice-sunfox-8.mp3",
+  "sunfox|Hehe… sorry, guardians. A fox has to eat!": "snap/voice-sunfox-9.mp3",
+  "sunfox|intro": "snap/voice-sunfox-10.mp3",
+  "mossling|Hi friend! Let's heal the planet together!": "snap/voice-mossling-11.mp3",
+  "mossling|Yes! Teamwork!": "snap/voice-mossling-12.mp3",
+  "mossling|Max combo! You are on fire!": "snap/voice-mossling-13.mp3",
+  "mossling|You did it! Thank you!": "snap/voice-mossling-14.mp3",
+  "mossling|intro": "snap/voice-mossling-15.mp3",
+  "ripplet|Let's go! I'll take the right side!": "snap/voice-ripplet-16.mp3",
+  "ripplet|Triple combo! You are amazing!": "snap/voice-ripplet-17.mp3",
+  "ripplet|Wow! The ocean is sparkling!": "snap/voice-ripplet-18.mp3",
+  "ripplet|Good try! Again?": "snap/voice-ripplet-19.mp3",
+  "ripplet|Guardians, positions! Protect the planet!": "snap/voice-ripplet-20.mp3",
+  "ripplet|Yes! Teamwork!": "snap/voice-ripplet-21.mp3",
+  "ripplet|You did it! Thank you!": "snap/voice-ripplet-22.mp3",
+  "ripplet|A wild litter critter appeared!": "snap/voice-ripplet-23.mp3",
+  "ripplet|Gotcha! Into the bin you go!": "snap/voice-ripplet-24.mp3",
+  "ripplet|Whoa! It evolved!": "snap/voice-ripplet-25.mp3",
+  "ripplet|intro": "snap/voice-ripplet-26.mp3",
+  "frostbun|Yes! Teamwork!": "snap/voice-frostbun-27.mp3",
+  "frostbun|You did it! Thank you!": "snap/voice-frostbun-28.mp3",
+  "frostbun|intro": "snap/voice-frostbun-29.mp3"
+ }
+}

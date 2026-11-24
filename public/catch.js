@@ -94,7 +94,7 @@ export function startCatch({ onCatch, onReal, speak }) {
   const dex = loadDex();
   const evolvedNow = (dex[crit.id] || 0) >= 3;
   $('.c-name').innerHTML = `<b>${evolvedNow ? crit.evo : crit.name}</b><small class="${crit.rarity}">${crit.rarity}</small>`;
-  speak && speak('ripplet', `A wild ${crit.name} appeared!`);
+  speak && speak('ripplet', 'A wild litter critter appeared!');
 
   const C = { x: W / 2, y: H * 0.38, size: Math.min(W, H) * 0.32, t: 0, dodge: 0, caught: false, gone: false };
   const bin = { x: W / 2, y: H - 90, r: 42 };
@@ -157,7 +157,7 @@ export function startCatch({ onCatch, onReal, speak }) {
     const n = d[crit.id], evolved = n === 3;
     const pts = RARITY[crit.rarity].pts;
     onCatch && onCatch(crit, pts, n);
-    speak && speak('ripplet', evolved ? `Whoa! ${crit.name} evolved into ${crit.evo}!` : `Gotcha! ${crit.line}`);
+    speak && speak('ripplet', evolved ? 'Whoa! It evolved!' : 'Gotcha! Into the bin you go!');
     done = true;
     setTimeout(() => {
       const box = $('.c-result');
