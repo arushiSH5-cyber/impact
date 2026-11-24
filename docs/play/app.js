@@ -3,6 +3,7 @@
 import { createGlobe } from './globe.js';
 import { faceURL } from './faces.js';
 import { startSiege } from './siege.js';
+import { startCatch, dexHTML, CRITTERS, critterURL } from './catch.js';
 
 const IA = window.ImpactAgents;
 const $ = (s) => document.querySelector(s);
@@ -261,6 +262,7 @@ document.querySelectorAll('#tabbar button').forEach((b) => (b.onclick = () => (b
 $('#agentsBtn').onclick = () => openSheet('agents');
 $('#gamesBtn').onclick = () => openSheet('games');
 $('#playFab').onclick = () => openSheet('games');
+$('#huntFab').onclick = () => openSheet('dex');
 $('#meBtn').onclick = () => openSheet('me');
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else openSheet(null); } });
 
@@ -592,7 +594,11 @@ TABS.games = {
     const weak = IA.ZONES.filter((z) => z !== 'space').sort((a, b) => W.H[a] - W.H[b])[0];
     const mate = IA.AGENTS.find((x) => x.type === 'guardian' && x.goal === weak) || IA.AG.mossling;
     const card = (id, face, title, sub, tag) => `<button class="gcard" id="${id}"><img src="${faceURL(face, 96)}" alt=""><span><b>${title}</b><small>${sub}</small></span><em>${tag}</em></button>`;
-    return `<button class="feature" id="gSiege"><span class="f-tag">3D · featured</span><b>Smog Siege</b>
+    return `<button class="feature hunt" id="gCatch"><span class="f-tag">real world · featured</span><b>Trash Catch</b>
+        <small>Doodle litter critters hide around you. Flick the bin to catch them, fill your Trashdex, evolve them, then bin a real piece for seeds.</small>
+        <span class="f-faces">${CRITTERS.slice(0, 5).map((c) => `<img src="${critterURL(c, 72)}" alt="">`).join('')}</span>
+        <span class="btn big">Catch</span></button>
+      <button class="feature" id="gSiege"><span class="f-tag">3D · featured</span><b>Smog Siege</b>
         <small>The Baron is bombing the planet. Spin it, blast the smog bombs, grab golden seeds, beat the Baron boss. Your guardians zap bombs with you.</small>
         <span class="f-faces"><img src="${faceURL(IA.AG.mossling, 72)}" alt=""><img src="${faceURL(IA.AG.ripplet, 72)}" alt=""><img src="${faceURL(IA.AG.frostbun, 72)}" alt=""><i>vs</i><img src="${faceURL(IA.AG.baron, 72)}" alt=""></span>
         <span class="btn big">Play</span></button>
@@ -606,6 +612,7 @@ TABS.games = {
   },
   mount() {
     $('#gSiege').onclick = playSiege;
+    $('#gCatch').onclick = playCatch;
     $('#gDuel').onclick = () => openSheet('duel');
     $('#gDash').onclick = () => openSheet('dash');
     $('#gPop').onclick = () => openSheet('play');
@@ -617,6 +624,29 @@ TABS.games = {
       if (r && r.quest) { openSheet(null); globe.say(mate.id, `${me.name}! I need you!`); doQuest(r.quest.kind); }
     };
   },
+};
+
+// ------------------------------------------------------------------ Trash Catch + Trashdex (public/catch.js)
+function playCatch() {
+  openSheet(null);
+  startCatch({
+    speak,
+    onCatch: async (c, pts) => {
+      if (me && mode === 'online') await api('api/act', { id: me.id, act: { label: `caught a ${c.name} in Trash Catch`, deltas: { ocean: 0.5 }, raid: pts, real: false } });
+      confetti();
+    },
+    onReal: () => doAction('litter'),
+  });
+}
+TABS.dex = {
+  title: 'Trashdex',
+  html() {
+    return `<button class="feature hunt" id="dxGo"><span class="f-tag">go catch</span><b>Trash Catch</b><small>Open your camera, find doodle litter critters, flick the bin. 3 of a kind evolves.</small><span class="btn big">Catch</span></button>
+      ${dexHTML()}
+      <h3>Real hunt</h3>
+      <button class="gcard" id="dxHunt"><span><b>Litter Hunt walk</b><small>Walk 150 m with GPS, bin real litter, snap proof. Heals the ocean and earns seeds.</small></span><em>real life · seeds</em></button>`;
+  },
+  mount() { $('#dxGo').onclick = playCatch; $('#dxHunt').onclick = litterHunt; },
 };
 
 // ------------------------------------------------------------------ Smog Siege (3D flagship, public/siege.js)
