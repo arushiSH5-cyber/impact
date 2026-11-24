@@ -47,7 +47,7 @@ export function raidHubHTML(faceURL, AG, seeds = 0) {
   const r = load();
   const pend = r.pending;
   return `${pend ? `<div class="rv"><img src="${faceURL(AG.baron, 80)}" alt=""><div><b>You got raided!</b><p>${pend.name} smashed your towers while you were away and took ${pend.lost} seeds.</p><button class="btn" data-raid="${pend.by}" data-revenge="1">Get revenge</button></div></div>` : ''}
-    <div class="lvl"><b>Squad level ${lvl}</b><span>+${lvl} attack · +${lvl * 2} health from ${seeds} seeds. Earn seeds in real life: tap <b>+ Log</b> after you bin trash, refuse plastic or walk instead of driving.</span></div>
+    <div class="lvl"><b>Squad level ${lvl}</b><span>+${lvl} attack · +${lvl * 2} health from ${seeds} seeds. Level up in real life: <b>+ Log</b> a walk or a refused plastic, bin litter in a Litter Hunt, or finish a mission.</span></div>
     <h3>Your squad</h3>
     ${(() => { const g = loadGear(), ids = Object.keys(g); const b = gearBonus(); return ids.length ? `<div class="gear">${ids.map((id) => `<span>${GEAR[id] ? GEAR[id].name : id} ×${g[id]}</span>`).join('')}<em>Squad bonus: +${b.atk} attack · +${b.hp} health</em></div>` : '<p class="small muted">Scan real trash in Trash Catch to earn equipment that powers up your whole squad.</p>'; })()}
     ${sq.length ? `<div class="sq">${sq.map((s) => `<div class="sq-c ${s.c.rarity}"><img src="${critterURL(s.c, 80, s.evo)}" alt=""><b>${s.evo ? s.c.evo : s.c.name}</b><small>atk ${Math.round(STATS[s.c.rarity][0] * (s.evo ? 1.5 : 1))} · hp ${Math.round(STATS[s.c.rarity][1] * (s.evo ? 1.5 : 1))}</small></div>`).join('')}</div>`
