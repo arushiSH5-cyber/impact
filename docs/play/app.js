@@ -633,6 +633,7 @@ TABS.games = {
   },
   mount() {
     const on = (id, fn) => { const el = $('#' + id); if (!el) return; el.onclick = fn; el.onkeydown = (e) => { if (e.key === 'Enter') fn(); }; };
+    conditions();
     on('gSiege', playSiege);
     on('gCatch', playCatch);
     on('gRaid', () => openSheet('raid'));
@@ -648,6 +649,9 @@ function playCatch() {
   openSheet(null);
   startCatch({
     speak,
+    cond: COND,
+    condHTML,
+    onPost: (c, real) => postResult('Trash Catch', real ? `scanned a real ${real} and caught ${c.name}` : `caught ${c.name} in Trash Catch`),
     onCatch: async (c, pts) => {
       if (me && mode === 'online') await api('api/act', { id: me.id, act: { label: `caught a ${c.name} in Trash Catch`, deltas: { ocean: 0.5 }, raid: pts, real: false } });
       confetti();
@@ -666,6 +670,40 @@ TABS.dex = {
   mount() { $('#dxGo').onclick = playCatch; $('#dxHunt').onclick = litterHunt; },
 };
 
+// ------------------------------------------------------------------ today's sponsor conditions for every game
+// Bruin's live air quality and Telem's top headline change the games; BAND gets your results; Runware narrates.
+let COND = null;
+async function conditions() {
+  if (COND) return COND;
+  let c = null;
+  if (mode === 'online') { try { c = await api('api/conditions'); } catch (e) { c = null; } }
+  if (!c && SNAP) {
+    const air = (SNAP.spawn || []).reduce((m, r) => (r.pm25 > (m ? m.pm25 : -1) ? r : m), null);
+    c = { air: air && { pm25: air.pm25, place: air.place, date: air.date }, news: (SNAP.news || [])[0] || null, band: false, runware: true, recorded: true };
+  }
+  c = c || { air: null, news: null };
+  const pm = c.air ? +c.air.pm25 : 10;
+  c.power = Math.max(1, Math.min(1.6, 1 + (pm - 10) / 25)); // dirtier air → stronger Smog Baron
+  c.pct = Math.round((c.power - 1) * 100);
+  c.alarm = !!(c.news && /fire|smoke|smog|spill|closure|alert|drought|heat/i.test(c.news.title));
+  COND = c;
+  return c;
+}
+function condHTML(c, what) {
+  const chips = [];
+  if (c.air) chips.push(`<span class="cc bruin"><b>Bruin</b> LA air PM2.5 ${c.air.pm25} (${esc(c.air.place)}) → ${what.air.replace('{pct}', c.pct)}</span>`);
+  if (c.news) chips.push(`<span class="cc telem"><b>Telem</b> “${esc(String(c.news.title).split('|')[0].trim().slice(0, 70))}” → ${what.news}</span>`);
+  chips.push(`<span class="cc runware"><b>Runware</b> character voices${c.recorded ? ' (recorded)' : ''}</span>`);
+  chips.push(`<span class="cc band"><b>BAND</b> ${c.band ? 'your result posts to the room' : 'results post on the live server'}</span>`);
+  return `<div class="cond">${chips.join('')}</div>`;
+}
+async function postResult(game, text) {
+  if (mode !== 'online' || !me) return false;
+  const r = await api('api/game-result', { name: me.name, game, text }).catch(() => null);
+  if (r && r.posted) toast('Posted to the BAND room');
+  return !!(r && r.posted);
+}
+
 // ------------------------------------------------------------------ Planet Raids (public/raid.js)
 function raidWin(rival, loot) {
   confetti();
@@ -675,12 +713,13 @@ function raidWin(rival, loot) {
 }
 TABS.raid = {
   title: 'Planet Raids',
-  html() { return raidHubHTML(faceURL, IA.AG); },
+  html() { return (COND ? condHTML(COND, { air: 'smog towers +{pct}% stronger', news: COND.alarm ? 'the Soot Cannon is fired up' : 'rivals are restless' }) : '') + raidHubHTML(faceURL, IA.AG); },
   mount() {
+    if (!COND) conditions().then(() => openTab === 'raid' && renderSheet(false));
     const st = $('#rStarter');
     if (st) st.onclick = () => { giveStarter(); renderSheet(false); toast('Bottle Bob and Can Goblin joined your squad!'); };
     document.querySelectorAll('#sheetB [data-raid]').forEach((b) => (b.onclick = () => {
-      const ok = startRaid(b.dataset.raid, { faceURL, AG: IA.AG, speak, onWin: raidWin, revenge: !!b.dataset.revenge });
+      const ok = startRaid(b.dataset.raid, { faceURL, AG: IA.AG, speak, onWin: raidWin, revenge: !!b.dataset.revenge, cond: COND, condHTML, onEnd: (won, rival) => postResult('Planet Raids', won ? `smashed ${rival.name}'s smog towers in a Planet Raid` : `was pushed back by ${rival.name}`) });
       if (!ok) toast('Catch a critter first (or take the starter)');
     }));
   },
@@ -704,6 +743,9 @@ function playSiege() {
   startSiege({
     agents: IA.AGENTS,
     speak,
+    cond: COND,
+    condHTML,
+    onResult: (score, wave) => postResult('Smog Siege', `defended the planet in Smog Siege: wave ${wave}, ${score} points`),
     onEnd: async (score, wave) => {
       const heal = Math.min(5, Math.round(score / 150));
       if (heal > 0 && me && mode === 'online') await api('api/act', { id: me.id, act: { label: `defended the planet in Smog Siege (wave ${wave}, ${score} points)`, deltas: { forest: heal, ocean: heal }, raid: score, real: false } });

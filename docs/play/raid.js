@@ -58,7 +58,8 @@ export function giveStarter() {
   try { const d = loadDex(); if (!Object.keys(d).length) { d.bottle = 1; d.can = 1; localStorage.setItem('impact.trashdex', JSON.stringify(d)); } } catch (e) { /* ignore */ }
 }
 
-export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge }) {
+export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, condHTML, onEnd }) {
+  const CD = cond || { power: 1, pct: 0 };
   const rival = RIVALS.find((x) => x.id === rivalId) || RIVALS[0];
   const sq = squadOf().sort((a, b) => STATS[b.c.rarity][0] - STATS[a.c.rarity][0]).slice(0, 3);
   if (!sq.length) return false;
@@ -66,7 +67,7 @@ export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge }) {
   const mine = sq.map((s, i) => { const [a, h] = STATS[s.c.rarity]; const k = s.evo ? 1.5 : 1; const hp = Math.round(h * k) + gb.hp; return { i, name: s.evo ? s.c.evo : s.c.name, img: critterURL(s.c, 120, s.evo), atk: Math.round(a * k) + gb.atk, hp, max: hp }; });
   const foes = rival.towers.map((t, i) => {
     const boss = t === 'Smog Baron';
-    const hp = boss ? 60 + rival.lvl * 10 : 16 + rival.lvl * 9;
+    const hp = Math.round((boss ? 60 + rival.lvl * 10 : 16 + rival.lvl * 9) * (0.85 + (CD.power - 1) * 0.6));
     return { i, name: t, boss, img: boss ? faceURL(AG.baron, 120) : null, atk: boss ? 7 + rival.lvl * 2 : 2 + rival.lvl * 2, hp, max: hp };
   });
   const root = document.createElement('div');
@@ -78,7 +79,8 @@ export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge }) {
   root.innerHTML = `<div class="r-sky"></div>
     <div class="r-top"><b>${revenge ? 'Revenge raid' : 'Raid'}: ${rival.name}</b><button class="r-x" aria-label="Retreat">✕</button></div>
     <div class="r-field"><div class="r-side mine">${mine.map((u) => unit(u, 'mine')).join('')}</div><div class="r-vs">VS</div><div class="r-side foe">${foes.map((u) => unit(u, 'foe')).join('')}</div></div>
-    <div class="r-coach"><img src="${faceURL(AG.mossling, 64)}" alt=""><p class="r-say">Commander Mossling: "Target the weakest tower first. Charge your POWER and hit them all at once!"</p></div>
+    ${condHTML && cond ? `<div class="r-cond">${condHTML(cond, { air: 'towers +{pct}%', news: 'towers fired up' })}</div>` : ''}
+    <div class="r-coach"><img src="${faceURL(AG.mossling, 64)}" alt=""><p class="r-say">${CD.air ? `Commander Mossling: "Bruin says LA air is PM2.5 ${CD.air.pm25} today, so their towers are ${CD.pct}% tougher. Charge POWER and hit them all at once!"` : 'Commander Mossling: "Target the weakest tower first. Charge your POWER and hit them all at once!"'}</p></div>
     <button class="r-power" disabled><span>POWER</span><i></i></button>
     <div class="r-end" hidden></div>`;
   document.body.appendChild(root);
@@ -140,12 +142,13 @@ export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge }) {
     if (won) { r.wins = r.wins || {}; r.wins[rival.id] = (r.wins[rival.id] || 0) + 1; if (revenge) delete r.pending; save(r); }
     const loot = won ? rival.loot + (revenge ? 10 : 0) : 0;
     if (won) onWin && onWin(rival, loot);
+    onEnd && onEnd(won, rival);
     speak && speak(won ? 'baron' : 'baron', won ? 'Curses! This is not over!' : 'Mwahaha! The planet is mine… for now.');
     box.hidden = false;
     box.innerHTML = won
       ? `<h2>Planet smashed!</h2><p>Your squad flattened every smog tower on ${rival.name}.</p><p class="r-loot">+${loot} seeds</p><p class="small">Catch more critters to build a stronger squad. Rare ones hit harder; 3 of a kind evolves.</p><button class="btn big r-again">Raid again</button> <button class="btn ghost r-close">Back</button>`
       : `<h2>Retreat!</h2><p>${rival.name} held. Catch rarer critters or evolve yours (3 of a kind), then come back.</p><button class="btn big r-again">Try again</button> <button class="btn ghost r-close">Back</button>`;
-    box.querySelector('.r-again').onclick = () => { close(); startRaid(rivalId, { faceURL, AG, speak, onWin, revenge }); };
+    box.querySelector('.r-again').onclick = () => { close(); startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, condHTML, onEnd }); };
     box.querySelector('.r-close').onclick = close;
   }
   function close() { done = true; clearTimeout(timer); root.remove(); }

@@ -507,3 +507,14 @@ body.covered #huntFab { display: none; }
 .gear { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .gear span { background: #fff1c9; border: 2px solid #ffd34d; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 800; }
 .gear em { width: 100%; font-style: normal; color: var(--mute); font-size: 13px; }
+
+/* ---- sponsor conditions inside every game */
+.cond { display: grid; gap: 6px; margin: 8px 0; text-align: left; }
+.cc { display: block; border-radius: 12px; padding: 5px 10px; font-size: 12.5px; line-height: 1.3; background: rgba(253,251,243,.95); color: var(--ink); border-left: 5px solid #ccc; }
+.cc b { font-weight: 900; margin-right: 4px; }
+.cc.bruin { border-color: #3fb2ff; } .cc.telem { border-color: #ff8fb8; } .cc.runware { border-color: #a98bff; } .cc.band { border-color: #62d98a; }
+.r-cond { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 50px); left: 12px; right: 12px; z-index: 2; }
+.r-cond .cond { grid-template-columns: 1fr 1fr; } .r-cond .cc { font-size: 11px; padding: 4px 8px; }
+.r-field { top: 168px !important; }
+.c-cond { position: absolute; left: 12px; right: 12px; bottom: 150px; } .c-cond .cond { grid-template-columns: 1fr 1fr; } .c-cond .cc { font-size: 11px; padding: 4px 8px; }
+.c-hint { bottom: 250px !important; }

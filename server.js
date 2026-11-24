@@ -357,6 +357,19 @@ const routes = {
     if (!sponsors.telem.health().ok) return send(res, 503, { error: 'Telem not connected' });
     send(res, 200, { items: await sponsors.telem.news(), source: 'Telem' });
   },
+  async 'GET /api/conditions'(req, res) {
+    const air = (SPAWN || []).reduce((m, r) => (r.pm25 > (m ? m.pm25 : -1) ? r : m), null);
+    const items = sponsors.telem.health().ok ? await sponsors.telem.news().catch(() => []) : [];
+    send(res, 200, { air: air ? { pm25: air.pm25, place: air.place, date: air.date, source: air.source } : null, news: items[0] ? { title: items[0].title, source: items[0].source, url: items[0].url } : null, band: sponsors.band.health().ok, runware: sponsors.runware.health().ok });
+  },
+  async 'POST /api/game-result'(req, res) {
+    const b = await readBody(req);
+    const who = String(b.name || 'A player').slice(0, 20), text = String(b.text || '').slice(0, 160);
+    if (!text) return send(res, 400, { error: 'no text' });
+    let posted = false;
+    try { posted = await sponsors.band.post({ agent: 'world', k: 'end', act: `${who} ${text}`, why: `played ${String(b.game || 'a game').slice(0, 30)} in Impact` }); } catch (e) { posted = false; }
+    send(res, 200, { posted });
+  },
   async 'POST /api/voice'(req, res) {
     if (!sponsors.runware.ready()) return send(res, 503, { error: 'Runware not configured' });
     const b = await readBody(req);

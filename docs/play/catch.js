@@ -95,13 +95,14 @@ function loadDetector() {
 }
 
 // ---------------------------------------------------------------- the catch screen
-export function startCatch({ onCatch, onReal, speak }) {
+export function startCatch({ onCatch, onReal, speak, cond, condHTML, onPost }) {
   const root = document.createElement('div');
   root.className = 'catch';
   root.innerHTML = `<video playsinline muted autoplay></video><div class="c-park"></div><canvas></canvas>
     <div class="c-top"><span class="c-name"></span><button class="c-x" aria-label="Close">✕</button></div>
     <div class="c-scan">AI scanner: point your camera at real trash</div>
     <div class="c-hint">Flick the bin up at the critter!</div>
+    ${condHTML && cond ? `<div class="c-cond">${condHTML(cond, { air: 'rare critters +{pct}%', news: 'critters on the move' })}</div>` : ''}
     <div class="c-result" hidden></div>`;
   document.body.appendChild(root);
   const $ = (q) => root.querySelector(q);
@@ -118,9 +119,10 @@ export function startCatch({ onCatch, onReal, speak }) {
   addEventListener('resize', size); size();
 
   // pick a critter by rarity
-  const total = CRITTERS.reduce((a, c) => a + RARITY[c.rarity].w, 0);
+  const boost = (c) => RARITY[c.rarity].w * (c.rarity === 'common' ? 1 : (cond && cond.power) || 1); // dirty air → rarer critters
+  const total = CRITTERS.reduce((a, c) => a + boost(c), 0);
   let r = Math.random() * total, crit = CRITTERS[0], realFrom = null, box = null;
-  for (const c of CRITTERS) { r -= RARITY[c.rarity].w; if (r <= 0) { crit = c; break; } }
+  for (const c of CRITTERS) { r -= boost(c); if (r <= 0) { crit = c; break; } }
   const dex = loadDex();
   let evolvedNow = (dex[crit.id] || 0) >= 3;
   const nameTag = () => { $('.c-name').innerHTML = `<b>${evolvedNow ? crit.evo : crit.name}</b><small class="${crit.rarity}">${realFrom ? 'from real ' + realFrom : crit.rarity}</small>`; };
@@ -228,6 +230,7 @@ export function startCatch({ onCatch, onReal, speak }) {
     const pts = RARITY[crit.rarity].pts * (realFrom ? 2 : 1);
     const gear = realFrom ? addGear(crit.id) : null;
     onCatch && onCatch(crit, pts, n);
+    onPost && onPost(crit, realFrom);
     speak && speak('ripplet', evolved ? 'Whoa! It evolved!' : 'Gotcha! Into the bin you go!');
     done = true;
     setTimeout(() => {
@@ -240,7 +243,7 @@ export function startCatch({ onCatch, onReal, speak }) {
         <button class="btn big c-bin">I binned a real one</button>
         <div class="c-row"><button class="btn ghost c-next">Catch another</button><button class="btn ghost c-done">Done</button></div>`;
       box.querySelector('.c-bin').onclick = () => { close(); onReal && onReal(); };
-      box.querySelector('.c-next').onclick = () => { close(); startCatch({ onCatch, onReal, speak }); };
+      box.querySelector('.c-next').onclick = () => { close(); startCatch({ onCatch, onReal, speak, cond, condHTML, onPost }); };
       box.querySelector('.c-done').onclick = close;
     }, 700);
   }

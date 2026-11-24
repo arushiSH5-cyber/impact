@@ -4,7 +4,8 @@
 import * as THREE from 'three';
 import { drawFace } from './faces.js';
 
-export function startSiege({ agents, myFace, onEnd, speak, say }) {
+export function startSiege({ agents, myFace, onEnd, speak, say, cond, condHTML, onResult }) {
+  const C = cond || { power: 1, pct: 0 };
   const AG = Object.fromEntries(agents.map((a) => [a.id, a]));
   const root = document.createElement('div');
   root.className = 'siege';
@@ -13,7 +14,7 @@ export function startSiege({ agents, myFace, onEnd, speak, say }) {
     <button class="s-x" aria-label="Quit">✕</button>
     <div class="s-feed"></div><div class="s-banner"></div>
     <div class="s-card s-start"><h1>Smog Siege</h1><p>The Smog Baron is bombing the planet. <b>Tap the smog bombs</b> before they land. <b>Drag</b> to spin the planet and find bombs on the back. Grab <b>golden seeds</b> to grow trees. Your guardians fight beside you.</p>
-      <div class="s-faces"></div><button class="btn big s-go">Defend the planet</button><p class="small muted">Best: <span class="s-best">0</span></p></div>`;
+      <div class="s-faces"></div>${condHTML && cond ? condHTML(cond, { air: '{pct}% more smog bombs', news: 'a news wave is coming' }) : ''}<button class="btn big s-go">Defend the planet</button><p class="small muted">Best: <span class="s-best">0</span></p></div>`;
   document.body.appendChild(root);
   const $ = (q) => root.querySelector(q);
   let best = 0; try { best = +localStorage.getItem('impact.siegeBest') || 0; } catch (e) { /* ignore */ }
@@ -142,9 +143,11 @@ export function startSiege({ agents, myFace, onEnd, speak, say }) {
   const banner = (t) => { const b = $('.s-banner'); b.textContent = t; b.classList.remove('on'); void b.offsetWidth; b.classList.add('on'); };
   function startWave() {
     const isBoss = wave % 3 === 0;
-    toSpawn = 6 + wave * 3; spawnT = 1.2;
+    toSpawn = Math.round((6 + wave * 3) * C.power); spawnT = 1.2;
     if (isBoss) { boss.visible = true; bossHP = 12 + wave * 2; boss.userData.a = 0; banner('The Smog Baron attacks!'); speak && speak('baron', 'Enough games. I will grey this planet myself!'); }
-    else banner(`Wave ${wave}`);
+    else if (wave === 2 && C.news) { banner('News wave!'); feed('Telem', String(C.news.title).split('|')[0].trim().slice(0, 60)); }
+    else banner(wave === 1 && C.air ? `Wave 1 · PM2.5 ${C.air.pm25}` : `Wave ${wave}`);
+    if (wave === 1 && C.air) feed('Bruin', `LA air PM2.5 ${C.air.pm25}: the Baron has ${C.pct}% more bombs today`);
     hud();
   }
 
@@ -279,6 +282,7 @@ export function startSiege({ agents, myFace, onEnd, speak, say }) {
     c.querySelector('.s-again').onclick = () => { close(); startSiege({ agents, myFace, onEnd, speak, say }); };
     c.querySelector('.s-quit').onclick = close;
     onEnd && onEnd(score, wave);
+    onResult && onResult(score, wave);
   }
   function close() {
     cancelAnimationFrame(raf); removeEventListener('resize', size);
