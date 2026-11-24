@@ -41,11 +41,13 @@ export function checkRaided() {
 }
 export function clearRaided() { const r = load(); delete r.pending; save(r); }
 
-export function raidHubHTML(faceURL, AG) {
+export function raidHubHTML(faceURL, AG, seeds = 0) {
+  const lvl = Math.min(10, Math.floor(seeds / 10));
   const sq = squadOf();
   const r = load();
   const pend = r.pending;
   return `${pend ? `<div class="rv"><img src="${faceURL(AG.baron, 80)}" alt=""><div><b>You got raided!</b><p>${pend.name} smashed your towers while you were away and took ${pend.lost} seeds.</p><button class="btn" data-raid="${pend.by}" data-revenge="1">Get revenge</button></div></div>` : ''}
+    <div class="lvl"><b>Squad level ${lvl}</b><span>+${lvl} attack · +${lvl * 2} health from ${seeds} seeds. Earn seeds in real life: tap <b>+ Log</b> after you bin trash, refuse plastic or walk instead of driving.</span></div>
     <h3>Your squad</h3>
     ${(() => { const g = loadGear(), ids = Object.keys(g); const b = gearBonus(); return ids.length ? `<div class="gear">${ids.map((id) => `<span>${GEAR[id] ? GEAR[id].name : id} ×${g[id]}</span>`).join('')}<em>Squad bonus: +${b.atk} attack · +${b.hp} health</em></div>` : '<p class="small muted">Scan real trash in Trash Catch to earn equipment that powers up your whole squad.</p>'; })()}
     ${sq.length ? `<div class="sq">${sq.map((s) => `<div class="sq-c ${s.c.rarity}"><img src="${critterURL(s.c, 80, s.evo)}" alt=""><b>${s.evo ? s.c.evo : s.c.name}</b><small>atk ${Math.round(STATS[s.c.rarity][0] * (s.evo ? 1.5 : 1))} · hp ${Math.round(STATS[s.c.rarity][1] * (s.evo ? 1.5 : 1))}</small></div>`).join('')}</div>`
@@ -58,13 +60,14 @@ export function giveStarter() {
   try { const d = loadDex(); if (!Object.keys(d).length) { d.bottle = 1; d.can = 1; localStorage.setItem('impact.trashdex', JSON.stringify(d)); } } catch (e) { /* ignore */ }
 }
 
-export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, condHTML, onEnd }) {
+export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, condHTML, onEnd, seeds = 0 }) {
+  const lvl = Math.min(10, Math.floor(seeds / 10)); // real-life seeds level up the squad
   const CD = cond || { power: 1, pct: 0 };
   const rival = RIVALS.find((x) => x.id === rivalId) || RIVALS[0];
   const sq = squadOf().sort((a, b) => STATS[b.c.rarity][0] - STATS[a.c.rarity][0]).slice(0, 3);
   if (!sq.length) return false;
   const gb = gearBonus();
-  const mine = sq.map((s, i) => { const [a, h] = STATS[s.c.rarity]; const k = s.evo ? 1.5 : 1; const hp = Math.round(h * k) + gb.hp; return { i, name: s.evo ? s.c.evo : s.c.name, img: critterURL(s.c, 120, s.evo), atk: Math.round(a * k) + gb.atk, hp, max: hp }; });
+  const mine = sq.map((s, i) => { const [a, h] = STATS[s.c.rarity]; const k = s.evo ? 1.5 : 1; const hp = Math.round(h * k) + gb.hp + lvl * 2; return { i, name: s.evo ? s.c.evo : s.c.name, img: critterURL(s.c, 120, s.evo), atk: Math.round(a * k) + gb.atk + lvl, hp, max: hp }; });
   const foes = rival.towers.map((t, i) => {
     const boss = t === 'Smog Baron';
     const hp = Math.round((boss ? 60 + rival.lvl * 10 : 16 + rival.lvl * 9) * (0.85 + (CD.power - 1) * 0.6));
@@ -149,7 +152,7 @@ export function startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, c
     box.innerHTML = won
       ? `<h2>Planet smashed!</h2><p>Your squad flattened every smog tower on ${rival.name}.</p><p class="r-loot">+${loot} seeds</p><p class="small">Catch more critters to build a stronger squad. Rare ones hit harder; 3 of a kind evolves.</p><button class="btn big r-again">Raid again</button> <button class="btn ghost r-close">Back</button>`
       : `<h2>Retreat!</h2><p>${rival.name} held. Catch rarer critters or evolve yours (3 of a kind), then come back.</p><button class="btn big r-again">Try again</button> <button class="btn ghost r-close">Back</button>`;
-    box.querySelector('.r-again').onclick = () => { close(); startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, condHTML, onEnd }); };
+    box.querySelector('.r-again').onclick = () => { close(); startRaid(rivalId, { faceURL, AG, speak, onWin, revenge, cond, condHTML, onEnd, seeds }); };
     box.querySelector('.r-close').onclick = close;
   }
   function close() { done = true; clearTimeout(timer); root.remove(); }

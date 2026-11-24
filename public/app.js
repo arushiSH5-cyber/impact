@@ -732,13 +732,13 @@ function raidWin(rival, loot) {
 }
 TABS.raid = {
   title: 'Planet Raids',
-  html() { return (COND ? condHTML(COND, { air: 'smog towers +{pct}% stronger', news: COND.alarm ? 'the Soot Cannon is fired up' : 'rivals are restless' }) : '') + raidHubHTML(faceURL, IA.AG); },
+  html() { return (COND ? condHTML(COND, { air: 'smog towers +{pct}% stronger', news: COND.alarm ? 'the Soot Cannon is fired up' : 'rivals are restless' }) : '') + raidHubHTML(faceURL, IA.AG, mySeeds()); },
   mount() {
     if (!COND) conditions().then(() => openTab === 'raid' && renderSheet(false));
     const st = $('#rStarter');
     if (st) st.onclick = () => { giveStarter(); renderSheet(false); toast('Bottle Bob and Can Goblin joined your squad!'); };
     document.querySelectorAll('#sheetB [data-raid]').forEach((b) => (b.onclick = () => {
-      const ok = startRaid(b.dataset.raid, { faceURL, AG: IA.AG, speak, onWin: raidWin, revenge: !!b.dataset.revenge, cond: COND, condHTML, onEnd: (won, rival) => postResult('Planet Raids', won ? `smashed ${rival.name}'s smog towers in a Planet Raid` : `was pushed back by ${rival.name}`) });
+      const ok = startRaid(b.dataset.raid, { faceURL, AG: IA.AG, speak, onWin: raidWin, revenge: !!b.dataset.revenge, cond: COND, condHTML, seeds: mySeeds(), onEnd: (won, rival) => postResult('Planet Raids', won ? `smashed ${rival.name}'s smog towers in a Planet Raid` : `was pushed back by ${rival.name}`) });
       if (!ok) toast('Catch a critter first (or take the starter)');
     }));
   },
