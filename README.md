@@ -1,45 +1,64 @@
 <div align="center">
 
-# 🌍 Impact
+<img src="docs/planet.gif" width="560" alt="The Impact planet spinning in 3D with its five characters orbiting">
 
-### Heal the planet together
+# Impact
 
-**Five AI characters live on a shared 3D planet that runs on your real day.<br>They argue, they get bribed, and they need *you* to save them.**
+**Five AI characters live on a shared 3D planet that runs on your real day.<br>They argue, they get bribed, and they need you to save them.**
 
-[**🌐 Website + 3D slides**](https://arushish5-cyber.github.io/impact/) · [**🎞️ Slides**](https://arushish5-cyber.github.io/impact/#slides) · [**🎬 Demo video**](https://arushish5-cyber.github.io/impact/#video) · [**▶ Run it**](#run-it)
-
-![Track 02](https://img.shields.io/badge/Track_02-Co--op_games_with_agents-a98bff?style=for-the-badge)
-![Agents](https://img.shields.io/badge/agents-5_autonomous-62d98a?style=for-the-badge)
-![Bruin](https://img.shields.io/badge/Bruin-33_checks-3fb2ff?style=for-the-badge)
-![Zero deps](https://img.shields.io/badge/server-zero_dependencies-f6c453?style=for-the-badge)
-
-<img src="docs/screenshots/planet.jpg" width="230" alt="The shared planet with the five agents"> <img src="docs/screenshots/duel.jpg" width="230" alt="Baron Duel with an AI teammate"> <img src="docs/screenshots/story.jpg" width="230" alt="Every agent decision with its reason">
+[Website](https://arushish5-cyber.github.io/impact/) · [Play now](https://arushish5-cyber.github.io/impact/play/) · [Slides](https://arushish5-cyber.github.io/impact/#slides) · [Demo video](https://arushish5-cyber.github.io/impact/#video) · [Run it](#run-it)
 
 *Agents for Impact Hackathon · Nov 23, 2026 · AWS Loft*
+
+<img src="docs/screenshots/planet.jpg" width="180" alt="The shared planet"> <img src="docs/screenshots/duel.jpg" width="180" alt="Baron Duel with an AI teammate"> <img src="docs/screenshots/story.jpg" width="180" alt="Every agent decision with its reason">
 
 </div>
 
 ---
 
-## 🎯 Judge it in 60 seconds
+## Judge it in 60 seconds
 
-1. **Open the app** and pick a buddy. Five characters are already walking the planet and acting every 10 seconds.
-2. **Tap 🎮 GAMES**: play **Trash Dash** with Ripplet (an AI teammate) or the **Baron Duel** (the Baron learns your moves; your teammate reads his pattern out loud).
+1. **Open the app** ([play in your browser](https://arushish5-cyber.github.io/impact/play/), or the live multiplayer server) and pick a buddy. Five characters are already walking the planet and acting every 10 seconds.
+2. **Tap GAMES**: play **Trash Dash** with Ripplet (an AI teammate) or the **Baron Duel** (the Baron learns your moves; your teammate reads his pattern out loud).
 3. **Wait for a showdown**: the Smog Baron bribes Sunfox live. Outbid him with seeds before Sunfox decides, on every phone at once.
-4. **Turn on 🔊**: every character talks with its own Runware voice.
+4. **Turn on voices** (speaker button in the top bar): every character talks with its own Runware voice.
 5. **Story → Every decision**: each move shows *why*, *the data it used* and *its source* (Bruin air data, Telem news).
 
-## 🧠 What it is
+## How we used our sponsors
+
+Every sponsor below is wired into the running game and makes a real call. Without any one of them, a core part of Impact stops working.
+
+### Bruin · the agents' senses and their auditor
+- **What it does:** a Bruin pipeline (9 assets, 33 quality checks) pulls **live air quality for Los Angeles** from Open-Meteo and builds `daily_spawn`, the table every agent reads on every tick. It also recomputes every player's footprint from cited factors (`footprint_daily`) and audits every agent decision (`agent_report`).
+- **Why it matters:** the agents don't act on made-up numbers. When PM2.5 is high, the Smog Baron gets stronger and the guardians get more urgent, and every decision in the Story log cites "Bruin" as its source. The in-app Run report *is* the Bruin audit.
+- **See it:** `bruin run pipeline` (33 checks pass) · Story → Every decision · Story → Run report.
+
+### BAND · agents and humans in one chat room
+- **What it does:** the street's group chat is a real BAND room. **Out:** the agents post their alliances, bribes, betrayals, missions, council meetings and run endings, each with its reason. **In:** people type `@Impact World rally ocean` (or `status`, `budget`, `report`, `news`), and the agent replies and changes the shared planet.
+- **Why it matters:** this is the "many agents ⇄ many humans" part of the challenge. A rally typed in BAND heals the ocean on every phone, and the agents react on the next tick.
+- **See it:** open the BAND room while the game runs; `@Impact World rally ocean`.
+
+### Telem · today's real news moves the agents
+- **What it does:** Telem searches today's news per zone (wildfire smoke, beach closures, smog alerts, low snowpack). Alarming news raises that zone's guardian urgency and draws the Smog Baron toward it.
+- **Why it matters:** the world reacts to what is actually happening today. Example: *"New wildfire reported in Los Angeles County on Nov. 23"* made Mossling rush to the forest, and the decision log links the article.
+- **See it:** Story → Every decision (look for "Telem"), Today → Feed & news.
+
+### Runware · a voice for every character, and the story postcard
+- **What it does:** each character speaks with its own Runware text-to-speech voice: Mossling (Pixie), Ripplet (Sarah), Frostbun (Olivia), Sunfox (Timothy), Smog Baron (Hades). They talk during showdowns, the Baron Duel, Trash Dash and when they cheer your name. Every run also ends with a storybook postcard of the final planet, posted to the Feed and the BAND room.
+- **Why it matters:** the agents feel like characters, not log lines. Images stay on the side (Feed and postcards); the game itself is the live 3D planet.
+- **Cost:** about $0.002 per voice line and $0.006 per postcard, cached per line and per world state.
+
+## What it is
 
 Impact is a co-op 3D planet. **Five AI agents with their own goals** live on it and act every 10 seconds, even when nobody is playing. **Two or more humans** join from their phones and share the same world. The agents' choices are driven by **live air-quality data from a Bruin pipeline**, **today's real news from Telem**, and the humans' **real actions**: walking instead of driving, binning litter, refusing plastic. An **agent council** renegotiates the street's daily budget every few minutes. Every decision is logged with *why*, *the data it used* and *its source*, and Bruin audits the agents afterwards.
 
-| | Agent | Wants | Voice (Runware) |
-|---|---|---|---|
-| 🌱 | **Mossling** | the forest back above 70; plants trees, makes allies | Pixie |
-| 💧 | **Ripplet** | a clean ocean; your Trash Dash teammate | Sarah |
-| ❄️ | **Frostbun** | the ice safe; asks you to walk one trip | Olivia |
-| 🦊 | **Sunfox** | seeds, from whoever pays most (the Baron keeps trying) | Timothy |
-| 🎩 | **Smog Baron** | the planet below 30; targets zones nobody watches | Hades |
+| Agent | Wants | Voice (Runware) |
+|---|---|---|
+| **Mossling** | the forest back above 70; plants trees, makes allies | Pixie |
+| **Ripplet** | a clean ocean; your Trash Dash teammate | Sarah |
+| **Frostbun** | the ice safe; asks you to walk one trip | Olivia |
+| **Sunfox** | seeds, from whoever pays most (the Baron keeps trying) | Timothy |
+| **Smog Baron** | the planet below 30; targets zones nobody watches | Hades |
 
 ```mermaid
 flowchart LR
@@ -53,12 +72,6 @@ flowchart LR
   T -->|character voices · postcards| R[Runware]
   T --> L[logs/decisions.jsonl] --> AU[Bruin agent_report audit]
 ```
-
-## Screenshots
-
-| Planet | Today | Story | Street | Baron Duel |
-|---|---|---|---|---|
-| <img src="docs/screenshots/planet.jpg" width="200" alt="The shared planet with the five agents"> | <img src="docs/screenshots/today.jpg" width="200" alt="Today: CO2 ring vs the council budget"> | <img src="docs/screenshots/story.jpg" width="200" alt="Story: every agent decision with its reason"> | <img src="docs/screenshots/street.jpg" width="200" alt="Street: neighbors on the shared planet"> | <img src="docs/screenshots/duel.jpg" width="200" alt="Baron Duel: co-op Leaf/Wave/Fire with an AI teammate"> |
 
 ## Run it
 
@@ -90,12 +103,12 @@ npm test             # engine checks (seeds, decision log, quests, learning)
 | Booster: 3D | Three.js planet, agents, smog, orbiting debris |
 | Booster: learns between runs | `data/agent_memory.json`: per-agent action → reward running averages bias the next run ("remembers run 2: prefers to tend") |
 | Real-world impact | **Today** tab: your carbon ledger vs a budget the council sets; log trips, energy, showers, trash, bills; guardians give missions from your real log ("Travel and energy are at 10.1 kg today. You drove 40 km."). The agents never judge what people eat. |
-| Booster: voice | Each character speaks with its own **Runware** text-to-speech voice (🔊 in the top bar, 🔊 Hear on every character card); the browser's speech is only a fallback |
+| Booster: voice | Each character speaks with its own **Runware** text-to-speech voice (speaker button in the top bar, "Hear" on every character card); the browser's speech is only a fallback |
 
 ## The carbon ledger and the council
 
 - **Log it** (center tab): tap what you did. Each line is computed from `public/factors.js`, where every number is cited: Poore & Nemecek (2018) via Our World in Data for food; US EPA for driving (404 g CO2/mile), gasoline (8,887 g/gal), electricity (0.394 kg/kWh), natural gas, and WaterSense for showers. Assumptions (like a 150 g portion) are shown next to the number.
-- **Scan a receipt or bill**: Gemini (or OpenAI) reads the photo and only *extracts* line items into a fixed JSON schema. It never produces a number: the server computes footprints from the same cited factors, and unknown items are shown as "not counted", never guessed.
+- **Scan a receipt or bill**: An AI model reads the photo and only *extracts* line items into a fixed JSON schema. It never produces a number: the server computes footprints from the same cited factors, and unknown items are shown as "not counted", never guessed.
 - The server ignores any numbers the client sends; it recomputes every line. Each line goes to `logs/ledger.jsonl` with its factor key and amount.
 - **Missions from your log**: when you go over today's budget in a category, its agent reacts on the next tick (Frostbun: travel and energy, Ripplet: water, Sunfox: stuff; Mossling asks for park clean-ups). Logging a walk completes Frostbun's mission.
 - **Council** (every 12 ticks): the agents read the street's real logs, and an under-budget guardian can give part of its budget to an over-budget one (if it trusts it). The Smog Baron lobbies for a "Black Friday flash sale"; Sunfox casts the deciding vote based on its greed and trust. The council also learns which nudges each person actually follows.
@@ -108,7 +121,7 @@ Real actions (a Litter Hunt, a walk instead of a drive, a mission) earn **seeds*
 - **Tap a character** on the planet to see its mood and what it wants, give it seeds, or ask it for a personal mission.
 - **Story tab:** the run as a short feed of big moments (with faces); the full decision log with reasons and sources sits under a fold for judges.
 
-## Games (🎮 GAMES on the planet)
+## Games (GAMES button on the planet)
 
 - **Trash Dash** (real-time arcade, co-op): you and Ripplet catch falling litter while the Smog Baron flies overhead dropping smog bombs. Ripplet is an agent: it chases the best item on its half, dodges bombs and calls out your combos. Golden seeds, x2/x3 combos, 3 hearts, 45 seconds. Your score heals the ocean for everyone.
 - **Baron Duel** (co-op, AI teammate): Leaf drinks Wave, Wave puts out Fire, Fire burns Leaf. You and the guardian of the weakest zone play together against the Smog Baron. The Baron is an agent that learns: he counters the move you play most. Your teammate reads his pattern out loud ("He keeps countering your Wave, so I'm going Fire!") and picks its own move. Best of 3; a win heals that zone for everyone.
@@ -120,7 +133,7 @@ The Games screen and the Street screen show a live sponsor strip: a dot turns gr
 ## Litter Hunt and why people come back
 
 - **Litter Hunt** (Go! tab, Today tab, or Ripplet's "Do a 150 m Litter Hunt" mission): walk at least 150 m while the phone counts distance with GPS, tap **Binned one** and snap a photo for each piece of litter. The server computes the reward (client numbers are ignored): Ocean +1, plus up to +2 for the walk, plus 0.8 per piece with a photo. It completes Ripplet's mission and puts you on the street's **Top Litter Hunters** board. Location never leaves the phone, only the distance. GPS needs a secure (https) link; on plain http the hunt runs in honor mode and the walk counts less.
-- **Daily streak 🔥**: any real action counts for the day. On streak days 2, 3, 5, 7, 14 and 30 a guardian cheers you in the log and Forest, Ocean and Ice each get +1.
+- **Daily streak**: any real action counts for the day. On streak days 2, 3, 5, 7, 14 and 30 a guardian cheers you in the log and Forest, Ocean and Ice each get +1.
 - **The world keeps going**: agents act while you're away and the app shows "While you were away…", so there's always something new.
 
 ## How the agents decide (`public/agents-engine.js`, shared by server and browser)
@@ -157,24 +170,6 @@ bruin run pipeline        # ✓ 9 assets, 33 quality checks passed
 
 After a run, the Agents log cites `Bruin · daily_spawn <date>` on every agent decision, **Run report** says `Source: Bruin agent_report`, and Today's history says `Source: Bruin footprint_daily`. Bruin isn't only a loader here: it computes everyone's carbon ledger, checks the app's math, and holds the AI agents accountable.
 
-## Sponsors: honest status
-
-The app's **Me → How Impact works** shows live status from `/api/health`. A sponsor turns green only after a real call succeeds on the server.
-
-| Sponsor | Use in Impact | Status |
-|---|---|---|
-| **Bruin** | Recomputes everyone's carbon ledger, feeds the agents live air data, audits every decision | ✅ **used**: validate + run pass (9 assets, 33 checks), live Open-Meteo data, server hot-reloads it |
-| **BAND** | The street's group chat is a real BAND room, both ways. **Out:** alliances, bribes, betrayals, missions, council meetings and run endings are posted with the agent's reason (max 1 per agent per minute). **In:** humans @mention Impact World with `status`, `rally ocean`, `budget`, `report`; a rally changes the shared planet for every player and is logged with source "BAND room" | ✅ **used: verified live**. Agent "Impact World" posts into the room over REST; the live WebSocket (Phoenix V2) is connected for incoming commands; startup backlog drain; claim → reply → processed |
-| **Telem** | Today's real news per zone changes what the agents do: alarming news (smoke, beach closures, smog alerts, low snowpack) raises that zone's guardian urgency and draws the Smog Baron toward it; the log cites the article with a link; Feed shows "Live · via Telem" reels | ✅ **used: verified live**. Example from today: forest news *"New wildfire reported in Los Angeles County on Nov. 23"* (sacbee.com) raised Mossling's urgency; only dated articles from the last 14 days are used, newest first |
-| **Runware** | **Character voices:** each agent speaks with its own Runware text-to-speech voice (Inworld TTS-2: Mossling = Pixie, Ripplet = Sarah, Frostbun = Olivia, Sunfox = Timothy, Smog Baron = Hades) in showdowns, the Baron Duel, cheers and the 🔊 button on every character card. **Story postcards:** every run ends with a storybook postcard of the final planet (Feed + BAND room), plus "Make my world postcard" on demand. Images stay on the side, never the main game view. | ✅ **used: verified with real calls**. Voice lines ≈ $0.002 each, postcards ≈ $0.006 each, cached per line / world state |
-| Glasser | Drop-off places in Bin Buddy | not used: we focused on the sponsors whose tools the game needs; adapter kept in `sponsors/glasser.js`, hidden in the app |
-| AI: Gemini (OpenAI optional) | Receipt/bill scanner (vision, extraction only, structured JSON) + one-line agent voices (max 1 per 30 s) | ✅ **used: Gemini verified with a real call**. A test grocery receipt came back as 6 correct items (paper towels, tax and totals skipped); footprints computed from the cited factors. The server picks the newest Flash model the key can actually use. OpenAI is wired as an automatic backup (same request retries on OpenAI if Gemini fails), but **not used today: the OpenAI account has no API credits** (`credit_balance_exhausted`) |
-| Lingcode | Wrap the PWA as an app | not used yet |
-| Teamily | "Maple St" street group for humans + a role agent (link in Neighbors) | event comms |
-| AdaL | Demo video | — |
-
-To turn one on: copy `.env.example` to `.env`, add the key, and run `npm start`. If one still fails, this table will say why. Nothing is faked.
-
 ## Data honesty
 - Air data is live from Open-Meteo through Bruin (`source` column says `open-meteo (live)`), or a labeled snapshot.
 - Footprint numbers in the profile are very rough estimates from published averages.
@@ -188,6 +183,6 @@ public/agents-engine.js   the five agents (shared by server and browser)
 public/factors.js         cited emission factors (shared by server and browser)
 public/app.js             PWA UI · public/globe.js 3D planet · public/faces.js characters
 pipeline/                 Bruin assets  ·  .bruin.yml (DuckDB at data/impact.duckdb)
-sponsors/                 Telem, BAND, Runware, Glasser, Gemini/OpenAI adapters (honest health)
+sponsors/                 Telem, BAND, Runware adapters + AI scanner (honest health)
 test/engine.test.js       engine checks
 ```

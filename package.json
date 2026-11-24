@@ -8,7 +8,10 @@
     "demo": "TICK_MS=3000 node --env-file-if-exists=.env server.js",
     "pipeline": "bruin run pipeline",
     "all": "bruin run pipeline && node --env-file-if-exists=.env server.js",
-    "test": "node test/engine.test.js"
+    "test": "node test/engine.test.js",
+    "site": "rm -rf docs/play && mkdir -p docs/play && cp -R public/. docs/play/"
   },
-  "engines": { "node": ">=20.12" }
+  "engines": {
+    "node": ">=20.12"
+  }
 }

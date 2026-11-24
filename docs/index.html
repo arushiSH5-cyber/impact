@@ -85,13 +85,13 @@ section { padding: 80px 0; }
 .sp p { margin: 0; color: var(--mute); font-size: 15px; }
 
 /* slides: a 3D deck */
-.deck { position: relative; height: min(70vh, 600px); perspective: 1600px; }
+.deck { position: relative; height: min(70vh, 600px); }
 .deck.full { position: fixed; inset: 0; height: auto; z-index: 50; background: radial-gradient(ellipse at 50% 30%, var(--bg2), var(--bg)); padding: 4vh 4vw 12vh; }
 .slide { position: absolute; inset: 0; background: var(--card); color: var(--ink); border-radius: 32px; border: 3px solid var(--line); box-shadow: 0 14px 0 rgba(0,0,0,.2), 0 40px 80px rgba(0,0,0,.35); padding: clamp(22px, 5vw, 56px); display: flex; flex-direction: column; justify-content: center; overflow: hidden;
-  transition: transform .7s cubic-bezier(.2,.8,.2,1), opacity .7s; transform-origin: 50% 50% -400px; }
+  transition: transform .45s ease, opacity .45s ease; }
 .deck.full .slide { inset: 4vh 4vw 12vh; }
-.slide.prev { transform: rotateY(70deg) translateZ(-200px); opacity: 0; pointer-events: none; }
-.slide.next { transform: rotateY(-70deg) translateZ(-200px); opacity: 0; pointer-events: none; }
+.slide.prev { transform: translateX(-40px); opacity: 0; pointer-events: none; }
+.slide.next { transform: translateX(40px); opacity: 0; pointer-events: none; }
 .slide h2 { font-size: clamp(40px, 6.5vw, 80px); }
 .slide .kicker { font: 900 13px Nunito; letter-spacing: .12em; text-transform: uppercase; color: var(--lav); margin-bottom: 8px; }
 .slide p, .slide li { font-size: clamp(17px, 2.2vw, 24px); color: #4a463c; }
@@ -100,7 +100,6 @@ section { padding: 80px 0; }
 .slide .faces { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 .slide .faces img { width: clamp(54px, 9vw, 96px); animation: float 3s ease-in-out infinite; }
 .slide .big { font: 700 clamp(56px, 11vw, 140px) Gaegu, cursive; line-height: .95; background: linear-gradient(135deg, #3fae5e, #3fb2ff 50%, #a98bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.slide .deco { position: absolute; right: -40px; bottom: -40px; font-size: 220px; opacity: .08; transform: rotate(-12deg); pointer-events: none; }
 .slide .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
 .slide .mini { background: var(--card2); border-radius: 18px; padding: 10px 14px; font-size: clamp(14px, 1.8vw, 18px); color: #4a463c; }
 .slide .mini b { display: block; font: 700 clamp(20px, 2.6vw, 28px) Gaegu, cursive; color: var(--ink); }
@@ -118,6 +117,8 @@ section { padding: 80px 0; }
 .video .soon h3 { font-size: 40px; }
 .video .soon p { color: var(--mute); margin: 4px 0 0; }
 footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14px; }
+body.render nav, body.render .copy, body.render .scroll-hint, body.render section, body.render footer, body.render .hero::after { display: none !important; }
+body.render .hero { min-height: 100vh; }
 @media (prefers-reduced-motion: reduce) { *, .ring { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -127,6 +128,7 @@ footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14
   <div class="links">
     <a href="#agents" class="hide-s">Agents</a>
     <a href="#games" class="hide-s">Games</a>
+    <a href="play/">Play</a>
     <a href="#slides">Slides</a>
     <a href="#video">Video</a>
     <a href="https://github.com/arushiSH5-cyber/impact" target="_blank" rel="noopener">GitHub</a>
@@ -138,10 +140,10 @@ footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14
   <div class="copy wrap">
     <h1>Impact</h1>
     <p class="tag">Five AI characters live on a shared planet that runs on your real day. They argue, they get bribed, and they need <i>you</i> to save them.</p>
-    <div class="chips"><span class="chip">🎮 Track 02 · Co-op games with agents</span><span class="chip">🤖 5 autonomous agents</span><span class="chip">📱 multiplayer on phones</span><span class="chip">🐻 Bruin-audited</span></div>
+    <div class="chips"><span class="chip">5 autonomous agents</span><span class="chip">multiplayer on phones</span><span class="chip">Bruin · BAND · Telem · Runware</span></div>
     <div class="cta">
-      <a class="btn alt" href="#slides">▶ See the slides</a>
-      <a class="btn" href="#games">🎮 The games</a>
+      <a class="btn alt" href="play/">Play now</a>
+      <a class="btn" href="#slides">See the slides</a>
       <a class="btn ghost" href="https://github.com/arushiSH5-cyber/impact" target="_blank" rel="noopener">Code on GitHub</a>
     </div>
   </div>
@@ -159,10 +161,10 @@ footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14
   <div class="wrap">
     <div class="sec-h"><h2>Play with the agents</h2><p>Real life earns seeds. Seeds win showdowns. Games heal the planet for everyone on your street.</p></div>
     <div class="loop">
-      <div class="tilt step"><div class="pop"><div class="n">🗑️</div><h3>Trash Dash</h3><p>Real-time arcade co-op: you and Ripplet (an AI teammate) catch falling litter while the Smog Baron bombs you. Combos, golden seeds, 45 seconds.</p></div></div>
-      <div class="tilt step"><div class="pop"><div class="n">🌱💧🔥</div><h3>Baron Duel</h3><p>Leaf · Wave · Fire with a guardian on your team. The Baron learns your favourite move; your teammate reads his pattern out loud.</p></div></div>
-      <div class="tilt step"><div class="pop"><div class="n">🎩</div><h3>Live showdowns</h3><p>The Baron bribes Sunfox in real time. Every phone gets the card. Outbid him with seeds before Sunfox decides, or shield the zone he's eyeing.</p></div></div>
-      <div class="tilt step"><div class="pop"><div class="n">🗺️</div><h3>Litter Hunt</h3><p>A real walk with GPS and photo proof. Heals the ocean, earns seeds, and puts you on the street leaderboard.</p></div></div>
+      <div class="tilt step"><div class="pop"><div class="n">01</div><h3>Trash Dash</h3><p>Real-time arcade co-op: you and Ripplet (an AI teammate) catch falling litter while the Smog Baron bombs you. Combos, golden seeds, 45 seconds.</p></div></div>
+      <div class="tilt step"><div class="pop"><div class="n">02</div><h3>Baron Duel</h3><p>Leaf · Wave · Fire with a guardian on your team. The Baron learns your favourite move; your teammate reads his pattern out loud.</p></div></div>
+      <div class="tilt step"><div class="pop"><div class="n">03</div><h3>Live showdowns</h3><p>The Baron bribes Sunfox in real time. Every phone gets the card. Outbid him with seeds before Sunfox decides, or shield the zone he's eyeing.</p></div></div>
+      <div class="tilt step"><div class="pop"><div class="n">04</div><h3>Litter Hunt</h3><p>A real walk with GPS and photo proof. Heals the ocean, earns seeds, and puts you on the street leaderboard.</p></div></div>
     </div>
   </div>
 </section>
@@ -176,7 +178,7 @@ footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14
 
 <section id="slides">
   <div class="wrap">
-    <div class="sec-h"><h2>Slides</h2><p>Use ← → or swipe. Press F (or the ⛶ button) for full screen.</p></div>
+    <div class="sec-h"><h2>Slides</h2><p>Use the arrow keys or swipe. Press F for full screen.</p></div>
     <div class="deck" id="deck"></div>
     <div class="deck-ui"><button class="round" id="prevB" aria-label="Previous slide">←</button><div class="dots" id="dots"></div><button class="round" id="nextB" aria-label="Next slide">→</button><button class="round" id="fullB" aria-label="Full screen">⛶</button></div>
   </div>
@@ -184,7 +186,7 @@ footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14
 
 <section id="powered">
   <div class="wrap">
-    <div class="sec-h"><h2>Powered live by</h2><p>Each one is a real call in the running game. The app shows a sponsor as live only after its call worked.</p></div>
+    <div class="sec-h"><h2>How we used our sponsors</h2><p>Each one is a real call in the running game, and each one powers a core part of it. The app shows a sponsor as live only after its call worked.</p></div>
     <div class="grid" id="spGrid"></div>
   </div>
 </section>
@@ -192,7 +194,7 @@ footer { text-align: center; padding: 40px 16px 60px; opacity: .8; font-size: 14
 <section id="video">
   <div class="wrap">
     <div class="sec-h"><h2>Demo video</h2></div>
-    <div class="video"><div class="frame" id="videoFrame"><div class="soon"><h3>Coming soon 🎬</h3><p>The two-minute demo lands here.</p></div></div></div>
+    <div class="video"><div class="frame" id="videoFrame"><div class="soon"><h3>Coming soon</h3><p>The two-minute demo lands here.</p></div></div></div>
   </div>
 </section>
 
@@ -219,12 +221,10 @@ document.getElementById('agentGrid').innerHTML = AGENTS.map((a) => `<div class="
 
 // ---------------- sponsors
 const SP = [
-  ['Bruin', 'Main tool', 'A 9-asset pipeline with 33 checks: live LA air quality becomes daily_spawn (every agent reads it each tick), footprints are recomputed from cited factors, and every agent decision is audited.'],
+  ['Bruin', 'The agents\' senses + auditor', 'A 9-asset pipeline with 33 checks turns live LA air quality into daily_spawn, which every agent reads every tick. High PM2.5 makes the Baron stronger and the guardians more urgent. Bruin also recomputes footprints and audits every agent decision: the in-app Run report is the Bruin audit.'],
   ['BAND', 'Agents ⇄ humans', 'The agents post alliances, bribes and betrayals to a real BAND room. Type @Impact World rally ocean there and the ocean heals on every phone.'],
   ['Telem', 'Live news', 'Today\'s real headlines per zone change decisions. Alarming news raises a guardian\'s urgency and draws the Baron there. Every move cites its article.'],
   ['Runware', 'Voices + postcards', 'Each character speaks with its own Runware text-to-speech voice, and every run ends with a storybook postcard of the final planet.'],
-  ['Gemini', 'Receipt reader', 'Reads utility bills and receipts. Extraction only: the carbon math uses cited EPA factors, never a made-up number.'],
-  ['Teamily', 'Event chat', 'Our street group lives in Teamily, the event\'s official chat.'],
 ];
 document.getElementById('spGrid').innerHTML = SP.map(([n, r, d]) => `<div class="tilt sp"><div class="pop"><h3>${n}</h3><span class="ok"><i></i>${r}</span><p>${d}</p></div></div>`).join('');
 
@@ -249,13 +249,13 @@ if (VIDEO_URL) vf.innerHTML = `<iframe src="${VIDEO_URL}" title="Impact demo vid
 const face = (id, s = 96) => faceURL(AGENTS.find((a) => a.id === id), s);
 const SLIDES = [
   `<div class="kicker">Track 02 · Co-op games with agents</div><div class="big">Impact</div><p>Heal the planet together. Five AI characters, one shared world, your real day.</p><div class="faces">${AGENTS.map((a) => `<img src="${face(a.id)}" alt="${a.name}">`).join('')}</div>`,
-  `<div class="kicker">The problem</div><h2>Climate apps are spreadsheets.</h2><ul><li>People quit them in a week.</li><li>Games keep people for years, but don't change anything in real life.</li><li>And most "AI" is still one chatbot answering one person.</li></ul><span class="deco">📉</span>`,
-  `<div class="kicker">The idea</div><h2>A planet that runs on your real day</h2><p>Five agents with their own goals live on it and act every 10 seconds, even when nobody is playing. You and your friends join from your phones. What you really do (walk instead of drive, bin litter, refuse plastic) earns seeds, and seeds are how you fight back.</p><span class="deco">🌍</span>`,
+  `<div class="kicker">The problem</div><h2>Climate apps are spreadsheets.</h2><ul><li>People quit them in a week.</li><li>Games keep people for years, but don't change anything in real life.</li><li>And most "AI" is still one chatbot answering one person.</li></ul>`,
+  `<div class="kicker">The idea</div><h2>A planet that runs on your real day</h2><p>Five agents with their own goals live on it and act every 10 seconds, even when nobody is playing. You and your friends join from your phones. What you really do (walk instead of drive, bin litter, refuse plastic) earns seeds, and seeds are how you fight back.</p>`,
   `<div class="kicker">The cast</div><h2>Agents with minds of their own</h2><div class="cols">${AGENTS.map((a) => `<div class="mini"><img src="${face(a.id, 64)}" alt="" style="width:44px;float:right">${'<b>' + a.name + '</b>'}${a.bio}</div>`).join('')}</div>`,
-  `<div class="kicker">Many agents ⇄ each other ⇄ humans</div><h2>Nobody scripts the drama</h2><ul><li>Guardians <b>ally</b>, trade energy, and hold a <b>council</b> that renegotiates the street's daily budget.</li><li>The Baron <b>bribes</b> Sunfox live. Every phone gets the showdown. Outbid him, or watch Sunfox betray everyone.</li><li>Run it twice with different seeds and you get a different story.</li></ul><span class="deco">🎩</span>`,
-  `<div class="kicker">The games</div><h2>Play with your AI teammates</h2><div class="cols"><div class="mini"><b>🗑️ Trash Dash</b>Arcade co-op with Ripplet. Dodge smog bombs.</div><div class="mini"><b>🌱 Baron Duel</b>Leaf · Wave · Fire. He learns your moves; your teammate reads his.</div><div class="mini"><b>⚡ Showdowns</b>Outbid bribes, shield zones, live on every phone.</div><div class="mini"><b>🗺️ Litter Hunt</b>A real GPS walk with photo proof. Earns seeds.</div></div>`,
-  `<div class="kicker">Real data, real sponsors</div><h2>Every move has a source</h2><div class="cols"><div class="mini"><b>🐻 Bruin</b>Live air quality → agent decisions. 33 checks. Audits every agent.</div><div class="mini"><b>📰 Telem</b>Today's real news per zone moves the agents.</div><div class="mini"><b>💬 BAND</b>Agents post to a real room; rally the ocean from chat.</div><div class="mini"><b>🎙️ Runware</b>A real voice for every character + storybook postcards.</div></div>`,
-  `<div class="kicker">Why you can trust it</div><h2>The AI never makes up a number</h2><ul><li>Gemini only <i>reads</i> a bill. The carbon math uses cited EPA factors.</li><li>Bruin re-checks the app's math and audits every agent decision.</li><li>A sponsor only shows as live after a real call works.</li></ul><span class="deco">✅</span>`,
+  `<div class="kicker">Many agents ⇄ each other ⇄ humans</div><h2>Nobody scripts the drama</h2><ul><li>Guardians <b>ally</b>, trade energy, and hold a <b>council</b> that renegotiates the street's daily budget.</li><li>The Baron <b>bribes</b> Sunfox live. Every phone gets the showdown. Outbid him, or watch Sunfox betray everyone.</li><li>Run it twice with different seeds and you get a different story.</li></ul>`,
+  `<div class="kicker">The games</div><h2>Play with your AI teammates</h2><div class="cols"><div class="mini"><b>Trash Dash</b>Arcade co-op with Ripplet. Dodge smog bombs.</div><div class="mini"><b>Baron Duel</b>Leaf · Wave · Fire. He learns your moves; your teammate reads his.</div><div class="mini"><b>Showdowns</b>Outbid bribes, shield zones, live on every phone.</div><div class="mini"><b>Litter Hunt</b>A real GPS walk with photo proof. Earns seeds.</div></div>`,
+  `<div class="kicker">Real data, real sponsors</div><h2>Every move has a source</h2><div class="cols"><div class="mini"><b>Bruin</b>Live air quality → agent decisions. 33 checks. Audits every agent.</div><div class="mini"><b>Telem</b>Today's real news per zone moves the agents.</div><div class="mini"><b>BAND</b>Agents post to a real room; rally the ocean from chat.</div><div class="mini"><b>Runware</b>A real voice for every character + storybook postcards.</div></div>`,
+  `<div class="kicker">Why you can trust it</div><h2>The AI never makes up a number</h2><ul><li>The AI only <i>reads</i> a bill. The carbon math uses cited EPA factors.</li><li>Bruin re-checks the app's math and audits every agent decision.</li><li>A sponsor only shows as live after a real call works.</li></ul>`,
   `<div class="kicker">That's Impact</div><div class="big">Agents that get real people to change real habits, together.</div><div class="faces">${AGENTS.map((a) => `<img src="${face(a.id)}" alt="${a.name}">`).join('')}</div>`,
 ];
 const deck = document.getElementById('deck'), dots = document.getElementById('dots');
@@ -338,13 +338,27 @@ const orbiters = AGENTS.map((a, i) => {
   const tex = new THREE.CanvasTexture(drawFace(a, 160)); tex.colorSpace = THREE.SRGBColorSpace;
   const fs = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex })); fs.scale.set(.38, .38, 1); fs.position.z = .03;
   g.add(body, fs); scene.add(g);
-  return { g, a: (i / AGENTS.length) * Math.PI * 2, r: a.id === 'baron' ? 2.25 : 1.85, y: (i % 2 ? .35 : -.25), sp: a.id === 'baron' ? -.25 : .32 };
+  return { g, fs, a: (i / AGENTS.length) * Math.PI * 2, r: a.id === 'baron' ? 2.25 : 1.85, y: (i % 2 ? .35 : -.25), sp: a.id === 'baron' ? -.25 : .32 };
 });
+// keep each face sprite on the camera side of its body so the face is always visible
+function faceCam(o) { o.fs.position.copy(cam.position).sub(o.g.position).normalize().multiplyScalar(.2); }
 let mx = 0, my = 0, drag = false, lx = 0, vy = .002;
 addEventListener('pointermove', (e) => { mx = e.clientX / innerWidth - .5; my = e.clientY / innerHeight - .5; if (drag) { vy = (e.clientX - lx) * .004; world.rotation.y += vy; lx = e.clientX; } });
 cv.addEventListener('pointerdown', (e) => { drag = true; lx = e.clientX; }); addEventListener('pointerup', () => { drag = false; });
 function size() { const w = cv.clientWidth, h = cv.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.position.z = w < h ? 8.2 : 6; cam.position.y = w < h ? .9 : .4; cam.updateProjectionMatrix(); }
 addEventListener('resize', size); size();
+// ?frame=0..1 renders one still of a seamless loop (used to make the README's animated planet)
+const FRAME = new URLSearchParams(location.search).get('frame');
+if (FRAME !== null) {
+  document.body.classList.add('render');
+  const ph = +FRAME * Math.PI * 2;
+  size();
+  world.rotation.set(0.28, ph, 0);
+  clouds.rotation.y = ph;
+  orbiters.forEach((o, i) => { const a = o.a + ph * (i === 4 ? -1 : 1); o.g.position.set(Math.cos(a) * o.r, o.y + Math.sin(ph * 2 + o.a) * .08, Math.sin(a) * o.r); faceCam(o); });
+  (function still() { renderer.render(scene, cam); requestAnimationFrame(still); })();
+  throw new Error('still frame mode'); // skip the live animation loop below
+}
 const clock = new THREE.Clock();
 let heroVisible = true;
 new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(cv);
@@ -355,7 +369,7 @@ new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(c
   if (!drag) { world.rotation.y += vy; vy += (.002 - vy) * .02; }
   world.rotation.x += ((.25 + my * .3) - world.rotation.x) * .05;
   clouds.rotation.y += .0008;
-  for (const o of orbiters) { const a = o.a + t * o.sp; o.g.position.set(Math.cos(a) * o.r, o.y + Math.sin(t * 2 + o.a) * .08, Math.sin(a) * o.r); }
+  for (const o of orbiters) { const a = o.a + t * o.sp; o.g.position.set(Math.cos(a) * o.r, o.y + Math.sin(t * 2 + o.a) * .08, Math.sin(a) * o.r); faceCam(o); }
   scene.rotation.y = mx * .25;
   renderer.render(scene, cam);
 })();

@@ -151,7 +151,7 @@ function receive(S) {
 function setNet() {
   const n = $('#net');
   n.className = 'pill stat net ' + (mode === 'online' ? 'on' : mode === 'offline' ? 'off' : '');
-  $("#netT").textContent = mode === "online" ? (innerWidth < 440 ? `${online}` : `${online} online`) : mode === 'offline' ? 'offline' : '…';
+  $("#netT").textContent = mode === "online" ? (innerWidth < 440 ? `${online}` : `${online} online`) : mode === 'offline' ? 'solo' : '…';
   n.title = mode === 'online' ? 'Connected: everyone sees the same world' : 'No server: agents run in this browser';
 }
 
@@ -576,7 +576,6 @@ const SPONSOR_ROLES = [
   ['band', 'BAND', 'agents post to a real chat room; rally from it'],
   ['telem', 'Telem', 'today\'s real news moves the agents'],
   ['runware', 'Runware', 'character voices + story postcards'],
-  ['llm', 'Gemini', 'receipt scanner'],
 ];
 function sponsorStrip() {
   return `<div class="sstrip">${SPONSOR_ROLES.map(([k, n, what]) => {
